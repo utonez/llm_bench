@@ -2,7 +2,7 @@
 
 定期以一組固定的金融任務測試多家 LLM，比較 **延遲（平均 / P95）、穩定度、token 用量與新台幣成本**，作為企業導入生成式 AI 時的選型依據。
 
-> 🚧 開發中。架構圖、雲端服務選用說明、CI/CD 與 Git 流程會陸續補上。
+> 🚧 開發中。完整計畫、架構與里程碑見 [docs/PLAN.md](docs/PLAN.md)。
 
 ## 技術堆疊（規劃）
 
@@ -21,7 +21,7 @@
 ```
 app/        FastAPI 與核心邏輯（providers / bench / pricing / storage）
 jobs/       排程評測進入點
-tasks/      金融任務題庫
+tasks/      題庫（皆有出處，見 tasks/README.md）
 tests/      單元與整合測試
 frontend/   儀表板
 infra/      Terraform
