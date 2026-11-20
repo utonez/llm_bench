@@ -1,0 +1,11 @@
+# Models measured on the frequent schedule (every 6 hours in the cloud).
+# Only list model IDs confirmed with `python -m jobs.list_models` for your key.
+# Targets whose provider has no API key are skipped with a warning.
+#
+# Free-tier daily limits matter: one round = 27 calls per model.
+#   every 6h → ~108 calls/day/model. Keep models whose free RPD comfortably exceeds that here;
+#   lower-quota models (e.g. OpenRouter ":free", ~50 req/day) belong in targets_daily.yaml.
+targets:
+  # Groq — "openai/gpt-oss-20b" is listed as a production model in Groq's docs.
+  - {provider: groq, model: openai/gpt-oss-20b}
+  # Gemini — add the Flash-Lite model ID reported by `python -m jobs.list_models lite`.
