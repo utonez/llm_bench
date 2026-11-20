@@ -26,6 +26,9 @@ class Target:
     # (e.g. 16 for a label) would leave them no room. The overhead still shows up
     # in output_tokens, so the cost difference stays visible.
     min_output_tokens: int = 0
+    # Minimum gap between call starts to this target's provider, so a round stays
+    # under the free tier's requests-per-minute limit instead of measuring our own 429s.
+    min_interval_s: float = 0.0
 
 
 def utc_now() -> datetime:
@@ -40,8 +43,8 @@ async def run_benchmark(
     timeout_s: float = DEFAULT_TIMEOUT_S,
     run_id: str | None = None,
 ) -> list[BenchResult]:
-    """Providers run in parallel; calls to the same provider run one at a time
-    so a single round stays inside free-tier rate limits."""
+    """Providers run in parallel; calls to the same provider run one at a time,
+    spaced by the provider's min_interval_s, so a round stays inside free-tier limits."""
     run_id = run_id or uuid.uuid4().hex
     by_provider: dict[str, list[Target]] = {}
     for target in targets:
@@ -56,11 +59,18 @@ async def run_benchmark(
 async def _run_provider(
     targets: list[Target], tasks: Sequence[Task], run_id: str, clock: Clock, timeout_s: float
 ) -> list[BenchResult]:
-    return [
-        await _run_one(target, task, run_id, clock, timeout_s)
-        for target in targets
-        for task in tasks
-    ]
+    interval = max(target.min_interval_s for target in targets)
+    results: list[BenchResult] = []
+    last_start: float | None = None
+    for target in targets:
+        for task in tasks:
+            if last_start is not None:
+                wait = interval - (time.monotonic() - last_start)
+                if wait > 0:
+                    await asyncio.sleep(wait)
+            last_start = time.monotonic()
+            results.append(await _run_one(target, task, run_id, clock, timeout_s))
+    return results
 
 
 async def _run_one(

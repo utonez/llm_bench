@@ -45,6 +45,20 @@ async def test_min_output_tokens_is_passed_to_target(tmp_path):
     assert target.min_output_tokens == 256
 
 
+async def test_provider_pacing_is_applied_to_targets(tmp_path):
+    settings = settings_with(
+        tmp_path,
+        "targets:\n  - {provider: gemini, model: g}\n  - {provider: mock, model: m}\n",
+        gemini_api_key="k",
+    )
+
+    async with httpx.AsyncClient() as client:
+        gemini, mock = build_targets(settings, client)
+
+    assert gemini.min_interval_s > 0
+    assert mock.min_interval_s == 0
+
+
 async def test_targets_sharing_a_provider_share_one_instance(tmp_path):
     settings = settings_with(
         tmp_path,

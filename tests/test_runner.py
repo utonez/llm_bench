@@ -96,6 +96,32 @@ async def test_task_budget_is_kept_when_above_target_minimum(classification_task
     assert provider.calls[0][2] == classification_task.max_tokens
 
 
+async def test_calls_to_one_provider_are_spaced_by_min_interval(classification_task, summary_task):
+    provider = ScriptedProvider("p")
+    targets = [Target(provider, "m1", min_interval_s=0.05), Target(provider, "m2")]
+
+    await run_benchmark([classification_task, summary_task], targets)
+
+    gaps = [b - a for a, b in zip(provider.call_times, provider.call_times[1:], strict=False)]
+    assert len(gaps) == 3
+    assert all(gap >= 0.045 for gap in gaps)  # small tolerance for timer resolution
+
+
+async def test_different_providers_are_not_slowed_by_each_other(classification_task):
+    slow = ScriptedProvider("slow")
+    fast = ScriptedProvider("fast")
+
+    started = asyncio.get_running_loop().time()
+    await run_benchmark(
+        [classification_task] * 3,
+        [Target(slow, "m", min_interval_s=0.1), Target(fast, "m")],
+    )
+
+    fast_span = fast.call_times[-1] - fast.call_times[0]
+    assert fast_span < 0.05
+    assert asyncio.get_running_loop().time() - started >= 0.19
+
+
 async def test_all_results_share_one_run_id(classification_task, summary_task):
     provider = ScriptedProvider("p")
 
