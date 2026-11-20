@@ -21,6 +21,12 @@ variable "bench_schedule" {
   default     = "0 */6 * * *"
 }
 
+variable "api_allowed_origins" {
+  description = "CORS origins allowed to call the query API (the dashboard). Empty = none."
+  type        = list(string)
+  default     = []
+}
+
 variable "provider_secrets" {
   description = "Secret Manager secret name => environment variable the job reads."
   type        = map(string)

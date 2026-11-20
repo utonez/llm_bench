@@ -170,6 +170,84 @@ resource "google_cloud_run_v2_job_iam_member" "scheduler_invoker" {
   member   = "serviceAccount:${google_service_account.scheduler.email}"
 }
 
+# ── Query API ──────────────────────────────────────────────────────────
+resource "google_service_account" "api" {
+  account_id   = "bench-api"
+  display_name = "llm-bench read-only query API"
+}
+
+# Read-only: the API can never modify benchmark data and has no access to provider secrets.
+resource "google_project_iam_member" "api_firestore_read" {
+  project = var.project_id
+  role    = "roles/datastore.viewer"
+  member  = "serviceAccount:${google_service_account.api.email}"
+}
+
+resource "google_cloud_run_v2_service" "api" {
+  name                = "llm-bench-api"
+  location            = var.region
+  deletion_protection = false
+  ingress             = "INGRESS_TRAFFIC_ALL"
+
+  template {
+    service_account = google_service_account.api.email
+
+    # Scale to zero when idle; never more than one instance. With the API's
+    # instance-wide rate limit this is a hard ceiling on traffic and cost.
+    scaling {
+      min_instance_count = 0
+      max_instance_count = 1
+    }
+
+    containers {
+      image   = local.image
+      command = ["uvicorn"]
+      args    = ["app.api.main:app", "--host", "0.0.0.0", "--port", "8080", "--no-server-header"]
+
+      ports {
+        container_port = 8080
+      }
+
+      resources {
+        cpu_idle = true # CPU only billed while handling requests
+        limits = {
+          cpu    = "1"
+          memory = "512Mi"
+        }
+      }
+
+      env {
+        name  = "STORAGE_BACKEND"
+        value = "firestore"
+      }
+      env {
+        name  = "GCP_PROJECT_ID"
+        value = var.project_id
+      }
+      env {
+        name  = "ALLOWED_ORIGINS"
+        value = jsonencode(var.api_allowed_origins)
+      }
+
+      startup_probe {
+        http_get {
+          path = "/health"
+        }
+      }
+    }
+  }
+
+  depends_on = [google_project_iam_member.api_firestore_read]
+}
+
+# Public by design: the API is read-only, rate-limited and serves aggregated benchmark data.
+resource "google_cloud_run_v2_service_iam_member" "api_public" {
+  name     = google_cloud_run_v2_service.api.name
+  location = var.region
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
 # ── Schedule ───────────────────────────────────────────────────────────
 resource "google_cloud_scheduler_job" "bench" {
   name             = "llm-bench-every-6h"

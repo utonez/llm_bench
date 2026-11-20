@@ -3,6 +3,11 @@ output "image_repository" {
   value       = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.images.repository_id}/bench"
 }
 
+output "api_url" {
+  description = "Public URL of the read-only query API."
+  value       = google_cloud_run_v2_service.api.uri
+}
+
 output "job_name" {
   value = google_cloud_run_v2_job.bench.name
 }
