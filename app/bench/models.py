@@ -65,3 +65,4 @@ class BenchResult(BaseModel):
     success: bool
     error_kind: str | None = None
     correct: bool | None = None  # None = failed call or ungraded category
+    cost_usd: float | None = Field(default=None, ge=0)  # None = no reference price known

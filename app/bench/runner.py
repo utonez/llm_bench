@@ -29,6 +29,7 @@ class Target:
     # Minimum gap between call starts to this target's provider, so a round stays
     # under the free tier's requests-per-minute limit instead of measuring our own 429s.
     min_interval_s: float = 0.0
+    price_ref: str | None = None  # market reference price id (see app.pricing)
 
 
 def utc_now() -> datetime:

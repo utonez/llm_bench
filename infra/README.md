@@ -16,6 +16,8 @@
 | Service account `bench-scheduler` | 排程觸發身分：只能啟動 `llm-bench-job` |
 | Cloud Run Job `llm-bench-job` | 執行一輪評測（`python -m jobs.run_bench`），不自動重試 |
 | Cloud Scheduler `llm-bench-every-6h` | 每 6 小時（Asia/Taipei）觸發 Job |
+| Service account `bench-api` | API 執行身分：只能**讀** Firestore，讀不到任何密鑰 |
+| Cloud Run service `llm-bench-api` | 唯讀查詢 API（`/v1/stats`、`/v1/timeseries`、`/v1/models`，文件在 `/docs`）；最多 1 個執行個體、閒置縮到零、公開存取（資料為彙總後的評測結果） |
 
 ## 第一次部署
 
