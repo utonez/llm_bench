@@ -5,8 +5,9 @@ import respx
 from app.config import PROJECT_ROOT, Settings
 from app.pricing.fx import CBC_FX_URL
 from app.pricing.openrouter import OPENROUTER_MODELS_URL
+from app.storage.factory import build_repository
 from app.storage.memory import InMemoryResultRepository
-from jobs.run_bench import build_repository, run_once
+from jobs.run_bench import run_once
 
 MOCK_TARGETS = PROJECT_ROOT / "config" / "targets_mock.yaml"
 

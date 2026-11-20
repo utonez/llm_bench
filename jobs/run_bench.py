@@ -20,20 +20,9 @@ from app.pricing.fx import FxRate, fetch_usd_twd
 from app.pricing.openrouter import Price, fetch_prices
 from app.providers.registry import TargetConfigError, build_targets
 from app.storage.base import ResultRepository
-from app.storage.firestore import FirestoreResultRepository
-from app.storage.memory import InMemoryResultRepository
+from app.storage.factory import build_repository
 
 logger = logging.getLogger("jobs.run_bench")
-
-
-def build_repository(settings: Settings) -> ResultRepository:
-    if settings.storage_backend == "memory":
-        return InMemoryResultRepository()
-    if not settings.gcp_project_id:
-        raise ValueError("STORAGE_BACKEND=firestore needs GCP_PROJECT_ID")
-    from google.cloud import firestore  # imported lazily: only needed in the cloud
-
-    return FirestoreResultRepository(firestore.Client(project=settings.gcp_project_id))
 
 
 async def load_pricing(

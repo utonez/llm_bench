@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     bench_timeout_s: float = Field(default=30.0, gt=0)
     pricing_enabled: bool = True  # fetch OpenRouter prices + Central Bank FX each round
 
+    # Query API (public, read-only)
+    allowed_origins: list[str] = []  # CORS: the dashboard origin(s); empty = same-origin only
+    api_rate_limit_per_minute: int = Field(default=120, ge=1)
+    api_cache_ttl_s: float = Field(default=300.0, ge=0)
+
     # Provider keys: .env locally, Secret Manager in the cloud. Never logged (SecretStr).
     gemini_api_key: SecretStr | None = None
     groq_api_key: SecretStr | None = None
