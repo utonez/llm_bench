@@ -137,6 +137,20 @@ def test_document_ids_are_safe_for_model_names_with_slashes():
     assert "/" not in doc_id
 
 
+def test_summaries_round_trip_in_their_own_collection():
+    from tests.test_memory_repository import make_summary
+
+    client = FakeClient()
+    repo = FirestoreResultRepository(client)
+    first, second = make_summary("r1", 0), make_summary("r2", 6)
+
+    repo.save_summaries([first, second])
+
+    assert repo.list_summaries() == [second, first]
+    assert len(client.store["run_summaries"]) == 2
+    assert "bench_results" not in client.store
+
+
 def test_saving_nothing_makes_no_commit():
     client = FakeClient()
 

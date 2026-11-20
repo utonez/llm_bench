@@ -45,6 +45,19 @@ async def test_min_output_tokens_is_passed_to_target(tmp_path):
     assert target.min_output_tokens == 256
 
 
+async def test_price_ref_is_passed_to_target(tmp_path):
+    settings = settings_with(
+        tmp_path,
+        "targets:\n  - {provider: groq, model: g, price_ref: vendor/g}\n",
+        groq_api_key="k",
+    )
+
+    async with httpx.AsyncClient() as client:
+        [target] = build_targets(settings, client)
+
+    assert target.price_ref == "vendor/g"
+
+
 async def test_provider_pacing_is_applied_to_targets(tmp_path):
     settings = settings_with(
         tmp_path,
