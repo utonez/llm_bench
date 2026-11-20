@@ -32,6 +32,19 @@ async def test_builds_targets_for_providers_with_keys(tmp_path):
     assert all(isinstance(t.provider, OpenAICompatibleProvider) for t in targets)
 
 
+async def test_min_output_tokens_is_passed_to_target(tmp_path):
+    settings = settings_with(
+        tmp_path,
+        "targets:\n  - {provider: groq, model: r1, min_output_tokens: 256}\n",
+        groq_api_key="k",
+    )
+
+    async with httpx.AsyncClient() as client:
+        [target] = build_targets(settings, client)
+
+    assert target.min_output_tokens == 256
+
+
 async def test_targets_sharing_a_provider_share_one_instance(tmp_path):
     settings = settings_with(
         tmp_path,

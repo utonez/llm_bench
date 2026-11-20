@@ -42,6 +42,7 @@ class TargetSpec(BaseModel):
 
     provider: str
     model: str = Field(min_length=1)
+    min_output_tokens: int = Field(default=0, ge=0, le=8192)
     # mock-only options
     name: str | None = None
     seed: int = 0
@@ -69,7 +70,7 @@ def build_targets(settings: Settings, client: httpx.AsyncClient) -> list[Target]
     for spec in load_target_specs(settings.targets_path):
         provider = _provider_for(spec, settings, client, providers)
         if provider is not None:
-            targets.append(Target(provider, spec.model))
+            targets.append(Target(provider, spec.model, spec.min_output_tokens))
     if not targets:
         raise TargetConfigError(
             f"no usable targets in {settings.targets_path}: set API keys in .env, "

@@ -50,6 +50,7 @@ async def run_once(settings: Settings, repository: ResultRepository) -> list[Mod
 
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # one line per request is noise
     settings = Settings()
     try:
         summaries = asyncio.run(run_once(settings, build_repository(settings)))

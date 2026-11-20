@@ -21,10 +21,10 @@ class ScriptedProvider:
         self.name = name
         self._reply = reply
         self._error = error
-        self.calls: list[tuple[str, str]] = []
+        self.calls: list[tuple[str, str, int]] = []
 
     async def complete(self, model: str, prompt: str, max_tokens: int) -> ProviderResponse:
-        self.calls.append((model, prompt))
+        self.calls.append((model, prompt, max_tokens))
         if self._error is not None:
             raise self._error
         return ProviderResponse(text=self._reply, input_tokens=10, output_tokens=5)

@@ -78,6 +78,24 @@ async def test_slow_call_times_out(classification_task):
     assert result.error_kind == "timeout"
 
 
+async def test_min_output_tokens_raises_budget_for_reasoning_models(classification_task):
+    provider = ScriptedProvider("p")
+
+    await run_benchmark(
+        [classification_task], [Target(provider, "reasoner", min_output_tokens=256)], clock=clock
+    )
+
+    assert provider.calls[0][2] == 256
+
+
+async def test_task_budget_is_kept_when_above_target_minimum(classification_task):
+    provider = ScriptedProvider("p")
+
+    await run_benchmark([classification_task], [Target(provider, "m", min_output_tokens=8)])
+
+    assert provider.calls[0][2] == classification_task.max_tokens
+
+
 async def test_all_results_share_one_run_id(classification_task, summary_task):
     provider = ScriptedProvider("p")
 
