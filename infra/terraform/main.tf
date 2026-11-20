@@ -81,6 +81,17 @@ resource "google_service_account" "scheduler" {
   display_name = "Cloud Scheduler trigger for the benchmark job"
 }
 
+# GCP grants the default Compute Engine service account roles/editor automatically.
+# Nothing here runs as that account (the job uses bench-job), so remove the grant: any
+# resource that later falls back to the default identity gets no project-wide edit rights.
+data "google_project" "this" {}
+
+resource "google_project_iam_member_remove" "default_compute_editor" {
+  project = var.project_id
+  role    = "roles/editor"
+  member  = "serviceAccount:${data.google_project.this.number}-compute@developer.gserviceaccount.com"
+}
+
 # The job may write results...
 resource "google_project_iam_member" "bench_job_firestore" {
   project = var.project_id
