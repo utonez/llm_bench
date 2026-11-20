@@ -24,6 +24,6 @@ jobs/       排程評測進入點
 tasks/      題庫（皆有出處，見 tasks/README.md）
 tests/      單元與整合測試
 frontend/   儀表板
-infra/      Terraform
+infra/      Terraform（部署步驟見 infra/README.md）
 docs/       架構圖、ADR、流程圖、AI 開發心得
 ```
