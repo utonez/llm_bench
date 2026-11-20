@@ -21,14 +21,18 @@ logger = logging.getLogger(__name__)
 class ProviderSpec:
     base_url: str
     key_setting: str  # attribute name on Settings
+    min_interval_s: float  # pacing between calls, kept under the free tier's RPM
 
 
+# Pacing: the first cloud round sent 27 calls back to back and Gemini returned 429 on 10
+# of them. Intervals keep each provider comfortably under its per-minute limit:
+#   gemini 4.5 s ≈ 13 RPM · groq 2.5 s ≈ 24 RPM (30 RPM documented) · openrouter 3.5 s ≈ 17 RPM (20)
 PROVIDERS: dict[str, ProviderSpec] = {
     "gemini": ProviderSpec(
-        "https://generativelanguage.googleapis.com/v1beta/openai", "gemini_api_key"
+        "https://generativelanguage.googleapis.com/v1beta/openai", "gemini_api_key", 4.5
     ),
-    "groq": ProviderSpec("https://api.groq.com/openai/v1", "groq_api_key"),
-    "openrouter": ProviderSpec("https://openrouter.ai/api/v1", "openrouter_api_key"),
+    "groq": ProviderSpec("https://api.groq.com/openai/v1", "groq_api_key", 2.5),
+    "openrouter": ProviderSpec("https://openrouter.ai/api/v1", "openrouter_api_key", 3.5),
 }
 MOCK = "mock"
 
@@ -70,7 +74,10 @@ def build_targets(settings: Settings, client: httpx.AsyncClient) -> list[Target]
     for spec in load_target_specs(settings.targets_path):
         provider = _provider_for(spec, settings, client, providers)
         if provider is not None:
-            targets.append(Target(provider, spec.model, spec.min_output_tokens))
+            interval = (
+                PROVIDERS[spec.provider].min_interval_s if spec.provider in PROVIDERS else 0.0
+            )
+            targets.append(Target(provider, spec.model, spec.min_output_tokens, interval))
     if not targets:
         raise TargetConfigError(
             f"no usable targets in {settings.targets_path}: set API keys in .env, "

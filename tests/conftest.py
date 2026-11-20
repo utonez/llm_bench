@@ -1,3 +1,4 @@
+import time
 from datetime import UTC, datetime
 
 import pytest
@@ -22,9 +23,11 @@ class ScriptedProvider:
         self._reply = reply
         self._error = error
         self.calls: list[tuple[str, str, int]] = []
+        self.call_times: list[float] = []
 
     async def complete(self, model: str, prompt: str, max_tokens: int) -> ProviderResponse:
         self.calls.append((model, prompt, max_tokens))
+        self.call_times.append(time.monotonic())
         if self._error is not None:
             raise self._error
         return ProviderResponse(text=self._reply, input_tokens=10, output_tokens=5)
