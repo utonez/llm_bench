@@ -3,7 +3,9 @@
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
-ErrorKind = Literal["timeout", "rate_limit", "auth", "server", "bad_response", "unexpected"]
+ErrorKind = Literal[
+    "timeout", "rate_limit", "auth", "invalid_request", "server", "bad_response", "unexpected"
+]
 
 
 @dataclass(frozen=True)

@@ -7,25 +7,17 @@ import asyncio
 import logging
 import sys
 
-from app.bench.runner import Target, run_benchmark
+import httpx
+
+from app.bench.runner import run_benchmark
 from app.bench.stats import ModelSummary, summarize
-from app.bench.task_loader import load_tasks
+from app.bench.task_loader import TaskFileError, load_tasks
 from app.config import Settings
-from app.providers.mock import MockProvider
+from app.providers.registry import TargetConfigError, build_targets
 from app.storage.base import ResultRepository
 from app.storage.memory import InMemoryResultRepository
 
 logger = logging.getLogger("jobs.run_bench")
-
-
-def build_targets() -> list[Target]:
-    # Real providers are added in the providers milestone; mocks keep this runnable offline.
-    return [
-        Target(MockProvider(name="mock-stable", seed=1, latency_s=0.02), "mock-fast"),
-        Target(
-            MockProvider(name="mock-flaky", seed=2, latency_s=0.05, failure_rate=0.2), "mock-slow"
-        ),
-    ]
 
 
 def build_repository(settings: Settings) -> ResultRepository:
@@ -36,7 +28,10 @@ def build_repository(settings: Settings) -> ResultRepository:
 
 async def run_once(settings: Settings, repository: ResultRepository) -> list[ModelSummary]:
     tasks = load_tasks(settings.tasks_path)
-    results = await run_benchmark(tasks, build_targets(), timeout_s=settings.bench_timeout_s)
+    # The runner enforces the per-call timeout; the client's is a slightly looser safety net.
+    async with httpx.AsyncClient(timeout=settings.bench_timeout_s + 5) as client:
+        targets = build_targets(settings, client)
+        results = await run_benchmark(tasks, targets, timeout_s=settings.bench_timeout_s)
     repository.save_results(results)
     summaries = summarize(results)
     for s in summaries:
@@ -55,8 +50,13 @@ async def run_once(settings: Settings, repository: ResultRepository) -> list[Mod
 
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # one line per request is noise
     settings = Settings()
-    summaries = asyncio.run(run_once(settings, build_repository(settings)))
+    try:
+        summaries = asyncio.run(run_once(settings, build_repository(settings)))
+    except (TargetConfigError, TaskFileError) as exc:
+        logger.error("configuration error: %s", exc)
+        return 1
     logger.info("round complete: %d model(s) measured", len(summaries))
     return 0
 

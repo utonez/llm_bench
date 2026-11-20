@@ -22,6 +22,10 @@ Clock = Callable[[], datetime]
 class Target:
     provider: Provider
     model: str
+    # Reasoning models spend hidden tokens before answering; a task's tight budget
+    # (e.g. 16 for a label) would leave them no room. The overhead still shows up
+    # in output_tokens, so the cost difference stays visible.
+    min_output_tokens: int = 0
 
 
 def utc_now() -> datetime:
@@ -70,10 +74,11 @@ async def _run_one(
         "task_id": task.id,
         "category": task.category,
     }
+    max_tokens = max(task.max_tokens, target.min_output_tokens)
     started = time.perf_counter()
     try:
         response = await asyncio.wait_for(
-            target.provider.complete(target.model, task.prompt, task.max_tokens), timeout_s
+            target.provider.complete(target.model, task.prompt, max_tokens), timeout_s
         )
     except TimeoutError:
         return _failure(base, started, "timeout")
