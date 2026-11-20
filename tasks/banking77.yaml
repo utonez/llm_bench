@@ -1,0 +1,141 @@
+# Banking77 — intent classification of real banking customer queries.
+# Source:  PolyAI, https://github.com/PolyAI-LDN/task-specific-datasets (banking_data/test.csv)
+# License: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
+# Citation: Casanueva et al., "Efficient Intent Detection with Dual Sentence Encoders", 2020.
+# Texts and labels are copied verbatim; only 5 of the 77 intents are used, 2 queries each.
+
+tasks:
+  - id: b77-lost-or-stolen-card-1
+    category: classification
+    expected: lost_or_stolen_card
+    max_tokens: 16
+    source: &b77
+      name: Banking77 (PolyAI)
+      url: https://github.com/PolyAI-LDN/task-specific-datasets/blob/master/banking_data/test.csv
+      license: CC-BY-4.0
+      locator: test.csv line 442
+      retrieved: "2026-11-20"
+    prompt: |
+      Classify the bank customer's message into exactly one of these intents:
+      lost_or_stolen_card, card_payment_not_recognised, exchange_rate,
+      transfer_not_received_by_recipient, card_arrival.
+      Answer with the intent label only.
+
+      Message: My entire gym bag, including my wallet, was stolen out of my locker today. Everything in my wallet is gone - how do I block the card to make it can't be used?
+
+  - id: b77-lost-or-stolen-card-2
+    category: classification
+    expected: lost_or_stolen_card
+    max_tokens: 16
+    source: {<<: *b77, locator: test.csv line 443}
+    prompt: |
+      Classify the bank customer's message into exactly one of these intents:
+      lost_or_stolen_card, card_payment_not_recognised, exchange_rate,
+      transfer_not_received_by_recipient, card_arrival.
+      Answer with the intent label only.
+
+      Message: I can't find my card and think it may have been stolen.
+
+  - id: b77-card-payment-not-recognised-1
+    category: classification
+    expected: card_payment_not_recognised
+    max_tokens: 16
+    source: {<<: *b77, locator: test.csv line 1083}
+    prompt: |
+      Classify the bank customer's message into exactly one of these intents:
+      lost_or_stolen_card, card_payment_not_recognised, exchange_rate,
+      transfer_not_received_by_recipient, card_arrival.
+      Answer with the intent label only.
+
+      Message: There is a charge on my card that I did not make
+
+  - id: b77-card-payment-not-recognised-2
+    category: classification
+    expected: card_payment_not_recognised
+    max_tokens: 16
+    source: {<<: *b77, locator: test.csv line 1084}
+    prompt: |
+      Classify the bank customer's message into exactly one of these intents:
+      lost_or_stolen_card, card_payment_not_recognised, exchange_rate,
+      transfer_not_received_by_recipient, card_arrival.
+      Answer with the intent label only.
+
+      Message: I saw a payment i did not do
+
+  - id: b77-exchange-rate-1
+    category: classification
+    expected: exchange_rate
+    max_tokens: 16
+    source: {<<: *b77, locator: test.csv line 82}
+    prompt: |
+      Classify the bank customer's message into exactly one of these intents:
+      lost_or_stolen_card, card_payment_not_recognised, exchange_rate,
+      transfer_not_received_by_recipient, card_arrival.
+      Answer with the intent label only.
+
+      Message: I need to know your exchange rates.
+
+  - id: b77-exchange-rate-2
+    category: classification
+    expected: exchange_rate
+    max_tokens: 16
+    source: {<<: *b77, locator: test.csv line 83}
+    prompt: |
+      Classify the bank customer's message into exactly one of these intents:
+      lost_or_stolen_card, card_payment_not_recognised, exchange_rate,
+      transfer_not_received_by_recipient, card_arrival.
+      Answer with the intent label only.
+
+      Message: What exchange rates do you offer?
+
+  - id: b77-transfer-not-received-1
+    category: classification
+    expected: transfer_not_received_by_recipient
+    max_tokens: 16
+    source: {<<: *b77, locator: test.csv line 842}
+    prompt: |
+      Classify the bank customer's message into exactly one of these intents:
+      lost_or_stolen_card, card_payment_not_recognised, exchange_rate,
+      transfer_not_received_by_recipient, card_arrival.
+      Answer with the intent label only.
+
+      Message: I completed an in country transfer a few days ago and was sure to check the account information several times since the transaction was completed, but the funds are still not available. What is the problem?
+
+  - id: b77-transfer-not-received-2
+    category: classification
+    expected: transfer_not_received_by_recipient
+    max_tokens: 16
+    source: {<<: *b77, locator: test.csv line 843}
+    prompt: |
+      Classify the bank customer's message into exactly one of these intents:
+      lost_or_stolen_card, card_payment_not_recognised, exchange_rate,
+      transfer_not_received_by_recipient, card_arrival.
+      Answer with the intent label only.
+
+      Message: My money transfer has not arrived.
+
+  - id: b77-card-arrival-1
+    category: classification
+    expected: card_arrival
+    max_tokens: 16
+    source: {<<: *b77, locator: test.csv line 3}
+    prompt: |
+      Classify the bank customer's message into exactly one of these intents:
+      lost_or_stolen_card, card_payment_not_recognised, exchange_rate,
+      transfer_not_received_by_recipient, card_arrival.
+      Answer with the intent label only.
+
+      Message: I still have not received my new card, I ordered over a week ago.
+
+  - id: b77-card-arrival-2
+    category: classification
+    expected: card_arrival
+    max_tokens: 16
+    source: {<<: *b77, locator: test.csv line 4}
+    prompt: |
+      Classify the bank customer's message into exactly one of these intents:
+      lost_or_stolen_card, card_payment_not_recognised, exchange_rate,
+      transfer_not_received_by_recipient, card_arrival.
+      Answer with the intent label only.
+
+      Message: I ordered a card but it has not arrived. Help please!

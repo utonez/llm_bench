@@ -21,7 +21,7 @@
 ```
 app/        FastAPI 與核心邏輯（providers / bench / pricing / storage）
 jobs/       排程評測進入點
-tasks/      金融任務題庫
+tasks/      題庫（皆有出處，見 tasks/README.md）
 tests/      單元與整合測試
 frontend/   儀表板
 infra/      Terraform

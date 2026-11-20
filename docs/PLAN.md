@@ -53,7 +53,7 @@ GitHub Actions ─(Workload Identity Federation)─► Artifact Registry ─► 
 
 | # | 分支 | 內容 | 完成條件 | 最晚 |
 |---|---|---|---|---|
-| M1 | `feat/bench-core` | 題庫、Provider 介面、Mock、評測執行器、評分、統計、記憶體儲存 | 本機用 Mock 跑完一輪、測試通過 | 11/21 |
+| M1 | `feat/bench-core` | 有出處的題庫（見 [tasks/README.md](../tasks/README.md)）、Provider 介面、Mock、評測執行器、評分、統計、記憶體儲存 | 本機用 Mock 跑完一輪、測試通過 | 11/21 |
 | M2 | `feat/providers` | Gemini、GitHub Models、Groq、OpenRouter 串接，錯誤分類與重試 | 本機對真實 API 跑一輪 | 11/22 |
 | M3 | `feat/gcp-infra` | Dockerfile、Firestore 儲存、Terraform、部署 Job + Scheduler | **雲端開始自動收集數據** | 11/22 |
 | M4 | `feat/api-cost` | FastAPI 查詢 API、OpenRouter 價格、臺銀匯率、新台幣成本 | API 部署並可查詢 | 11/23 |

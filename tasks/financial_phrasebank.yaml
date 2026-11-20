@@ -1,0 +1,82 @@
+# Financial PhraseBank — sentiment of English financial news sentences.
+# Source:  Malo, Sinha et al., Aalto University, via https://huggingface.co/datasets/takala/financial_phrasebank
+#          (FinancialPhraseBank-v1.0.zip / Sentences_AllAgree.txt — all annotators agreed on the label)
+# Citation: Malo, P., Sinha, A., Korhonen, P., Wallenius, J., Takala, P. (2014).
+#           "Good debt or bad debt: Detecting semantic orientations in economic texts." JASIST.
+#
+# LICENSE NOTICE: this file contains material from Financial PhraseBank and is therefore
+# licensed under CC BY-NC-SA 3.0 (https://creativecommons.org/licenses/by-nc-sa/3.0/):
+# attribution required, NON-COMMERCIAL use only, adaptations must use the same license.
+# Sentences and labels are copied verbatim (including the dataset's original tokenisation).
+
+tasks:
+  - id: fpb-positive-1
+    category: classification
+    expected: positive
+    max_tokens: 8
+    source: &fpb
+      name: Financial PhraseBank v1.0 (Malo et al., 2014)
+      url: https://huggingface.co/datasets/takala/financial_phrasebank
+      license: CC-BY-NC-SA-3.0
+      locator: Sentences_AllAgree.txt line 3
+      retrieved: "2026-11-20"
+    prompt: |
+      Classify the sentiment of this financial news sentence from an investor's point of view.
+      Answer with exactly one word: positive, negative, or neutral.
+
+      Sentence: In the third quarter of 2010 , net sales increased by 5.2 % to EUR 205.5 mn , and operating profit by 34.9 % to EUR 23.5 mn .
+
+  - id: fpb-positive-2
+    category: classification
+    expected: positive
+    max_tokens: 8
+    source: {<<: *fpb, locator: Sentences_AllAgree.txt line 4}
+    prompt: |
+      Classify the sentiment of this financial news sentence from an investor's point of view.
+      Answer with exactly one word: positive, negative, or neutral.
+
+      Sentence: Operating profit rose to EUR 13.1 mn from EUR 8.7 mn in the corresponding period in 2007 representing 7.7 % of net sales .
+
+  - id: fpb-negative-1
+    category: classification
+    expected: negative
+    max_tokens: 8
+    source: {<<: *fpb, locator: Sentences_AllAgree.txt line 294}
+    prompt: |
+      Classify the sentiment of this financial news sentence from an investor's point of view.
+      Answer with exactly one word: positive, negative, or neutral.
+
+      Sentence: Pharmaceuticals group Orion Corp reported a fall in its third-quarter earnings that were hit by larger expenditures on R&D and marketing .
+
+  - id: fpb-negative-2
+    category: classification
+    expected: negative
+    max_tokens: 8
+    source: {<<: *fpb, locator: Sentences_AllAgree.txt line 295}
+    prompt: |
+      Classify the sentiment of this financial news sentence from an investor's point of view.
+      Answer with exactly one word: positive, negative, or neutral.
+
+      Sentence: However , the growth margin slowed down due to the financial crisis .
+
+  - id: fpb-neutral-1
+    category: classification
+    expected: neutral
+    max_tokens: 8
+    source: {<<: *fpb, locator: Sentences_AllAgree.txt line 1}
+    prompt: |
+      Classify the sentiment of this financial news sentence from an investor's point of view.
+      Answer with exactly one word: positive, negative, or neutral.
+
+      Sentence: According to Gran , the company has no plans to move all production to Russia , although that is where the company is growing .
+
+  - id: fpb-neutral-2
+    category: classification
+    expected: neutral
+    max_tokens: 8
+    source: {<<: *fpb, locator: Sentences_AllAgree.txt line 40}
+    prompt: |
+      Classify the sentiment of this financial news sentence from an investor's point of view.
+      Answer with exactly one word: positive, negative, or neutral.
+
+      Sentence: A maximum of 666,104 new shares can further be subscribed for by exercising B options under the 2004 stock option plan .

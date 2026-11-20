@@ -16,12 +16,25 @@ class TaskCategory(StrEnum):
     EXPLANATION = "explanation"  # measured only
 
 
+class TaskSource(BaseModel):
+    """Where a task's text and answer come from. Required: no invented tasks."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    name: str = Field(min_length=1)
+    url: str = Field(pattern=r"^https://")
+    license: str = Field(min_length=1)
+    locator: str = Field(min_length=1)  # row / line / section inside the source
+    retrieved: str | None = None  # YYYY-MM-DD
+
+
 class Task(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     id: str = Field(min_length=1)
     category: TaskCategory
     prompt: str = Field(min_length=1)
+    source: TaskSource
     expected: str | None = None
     expected_fields: dict[str, str] | None = None
     max_tokens: int = Field(default=DEFAULT_MAX_TOKENS, gt=0, le=4096)

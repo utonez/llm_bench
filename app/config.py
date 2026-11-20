@@ -14,5 +14,5 @@ class Settings(BaseSettings):
 
     storage_backend: Literal["memory", "firestore"] = "memory"
     gcp_project_id: str | None = None
-    tasks_path: Path = PROJECT_ROOT / "tasks" / "finance_tasks.yaml"
+    tasks_path: Path = PROJECT_ROOT / "tasks"  # every *.yaml in this directory
     bench_timeout_s: float = Field(default=30.0, gt=0)
