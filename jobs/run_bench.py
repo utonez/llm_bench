@@ -15,6 +15,7 @@ from app.bench.task_loader import TaskFileError, load_tasks
 from app.config import Settings
 from app.providers.registry import TargetConfigError, build_targets
 from app.storage.base import ResultRepository
+from app.storage.firestore import FirestoreResultRepository
 from app.storage.memory import InMemoryResultRepository
 
 logger = logging.getLogger("jobs.run_bench")
@@ -23,7 +24,11 @@ logger = logging.getLogger("jobs.run_bench")
 def build_repository(settings: Settings) -> ResultRepository:
     if settings.storage_backend == "memory":
         return InMemoryResultRepository()
-    raise NotImplementedError(f"storage backend {settings.storage_backend!r} not available yet")
+    if not settings.gcp_project_id:
+        raise ValueError("STORAGE_BACKEND=firestore needs GCP_PROJECT_ID")
+    from google.cloud import firestore  # imported lazily: only needed in the cloud
+
+    return FirestoreResultRepository(firestore.Client(project=settings.gcp_project_id))
 
 
 async def run_once(settings: Settings, repository: ResultRepository) -> list[ModelSummary]:
