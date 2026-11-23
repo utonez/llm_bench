@@ -1,26 +1,43 @@
 # Models measured on the frequent schedule (every 6 hours in the cloud).
 # Every model ID below was confirmed with `python -m jobs.list_models` and a live probe
-# on 2026-11-20. Targets whose provider has no API key are skipped with a warning.
+# before being added. Targets whose provider has no API key are skipped with a warning.
 #
-# Free-tier daily limits matter: one round = 27 calls per model,
-# every 6h → ~108 calls/day/model. Low-quota models belong in targets_daily.yaml.
+# Free-tier daily limits are per model: one round = 27 calls per model,
+# every 6h → ~108 calls/day/model. Calls to one provider are paced (see registry.py).
 #
 # price_ref: OpenRouter model id used as the *market reference price* (USD per token).
 # Our free-tier calls cost $0; this answers "what would this traffic cost on a paid API?".
-# All three ids were confirmed in OpenRouter's public /api/v1/models catalog on 2026-11-20.
+# All ids were confirmed in OpenRouter's public /api/v1/models catalog.
+#
+# What the set compares: provider (Gemini vs Groq), model size (gpt-oss 20b vs 120b)
+# and model generation (Gemini flash-lite 3.1 vs 3.5).
 targets:
-  # Gemini Flash-Lite: answered both probe tasks correctly.
+  # ── Gemini ────────────────────────────────────────────────────────────
+  # Flash-Lite 3.5: answered both probe tasks correctly (2026-11-20).
   - {provider: gemini, model: gemini-3.5-flash-lite, price_ref: google/gemini-3.5-flash-lite}
+  # Flash-Lite 3.1 (previous generation, added 2026-11-23): 3/4 probe tasks correct,
+  # one transient HTTP 503 — the same instability seen on 3.5.
+  - {provider: gemini, model: gemini-3.1-flash-lite, price_ref: google/gemini-3.1-flash-lite}
 
-  # Groq Qwen: correct and fastest in the probe (~0.3-0.5 s).
+  # ── Groq ──────────────────────────────────────────────────────────────
+  # Qwen: correct and fastest in the probe (~0.3-0.5 s).
   - {provider: groq, model: qwen/qwen3.8-27b, price_ref: qwen/qwen3.8-27b}
 
-  # Groq gpt-oss (reasoning model): with a task budget of 16 tokens it returned empty
-  # answers because hidden reasoning used the whole budget. With 256 it answered
-  # correctly but spent ~86 output tokens on a ~6-token label — the overhead is kept
-  # in output_tokens so the dashboard can show the real cost.
-  - {provider: groq, model: openai/gpt-oss-20b, min_output_tokens: 256, price_ref: openai/gpt-oss-20b}
+  # gpt-oss (reasoning models): with a task's own budget (8-16 tokens for labels) they
+  # return empty answers because hidden reasoning uses the whole budget. The overhead is
+  # kept in output_tokens so the dashboard shows the real cost.
+  # 2026-11-23: budget raised 256 -> 512 for both. At 256, the CPI extraction task was cut
+  # off (gpt-oss-20b needed 258 tokens, 120b 306), so part of 20b's earlier accuracy loss
+  # came from our budget, not the model. Results before this date are not comparable on
+  # that task.
+  - {provider: groq, model: openai/gpt-oss-20b, min_output_tokens: 512, price_ref: openai/gpt-oss-20b}
+  # gpt-oss-120b (added 2026-11-23): same family as 20b, ~6x larger — isolates model size.
+  - {provider: groq, model: openai/gpt-oss-120b, min_output_tokens: 512, price_ref: openai/gpt-oss-120b}
 
 # Probed but not used:
-#   gemini-3.8-flash — HTTP 503, then an answer cut off at 4 tokens after 52 s.
-#   openrouter google/gemma-4-31b-it:free — HTTP 429 on the first request.
+#   gemini-3.8-flash — HTTP 503, then an answer cut off at 4 tokens after 52 s (2026-11-20).
+#   openrouter google/gemma-4-31b-it:free — HTTP 429 on the first request (2026-11-20).
+#   gemma-4-31b-it via the Gemini API — 5 of 7 calls HTTP 503; the rest returned only raw
+#     "<thought>" text with 0 reported output tokens, one after 36 s (2026-11-23).
+#   gemma-4-26b-a4b-it via the Gemini API — 2 of 3 calls HTTP 503, the third returned only
+#     "<thought>" text (2026-11-23).
