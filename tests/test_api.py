@@ -171,6 +171,10 @@ async def test_dashboard_assets_are_served(client):
     assert script.status_code == 200
     assert "javascript" in script.headers["content-type"]
     assert chart.status_code == 200
+    # Our own assets revalidate every time so a deploy is never mixed with stale JS;
+    # vendored files live in versioned folders and can be cached for a long time.
+    assert script.headers["cache-control"] == "no-cache"
+    assert "immutable" in chart.headers["cache-control"]
 
 
 async def test_api_docs_keep_working_without_the_strict_policy(client):

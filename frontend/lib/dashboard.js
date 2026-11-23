@@ -87,6 +87,78 @@ export function bestModel(rows, key, better) {
   return /** @type {string} */ (best.model);
 }
 
+const FAST_MS = 1000;
+const SLOW_MS = 5000;
+
+/**
+ * @param {number | null | undefined} p95Ms
+ * @returns {"fast" | "ok" | "slow" | null}
+ */
+export function latencyTier(p95Ms) {
+  if (!isNumber(p95Ms)) return null;
+  if (p95Ms < FAST_MS) return "fast";
+  return p95Ms < SLOW_MS ? "ok" : "slow";
+}
+
+/**
+ * Bar length in percent of the maximum, clamped to 0..100.
+ * @param {number | null | undefined} value
+ * @param {number} max
+ * @returns {number}
+ */
+export function barWidth(value, max) {
+  if (!isNumber(value) || !isNumber(max) || max <= 0) return 0;
+  return Math.max(0, Math.min(100, (value / max) * 100));
+}
+
+/**
+ * @typedef {{ key: string, title: string, model: string, detail: string, caveat: string | null }} Insight
+ */
+
+/**
+ * One recommendation per priority (speed, accuracy, cost), each with its evidence.
+ * A slow tail on the most accurate model is called out instead of hidden.
+ * @param {readonly Record<string, any>[]} stats
+ * @returns {Insight[]}
+ */
+export function buildInsights(stats) {
+  const find = (model) => stats.find((s) => s.model === model);
+  const fastest = find(bestModel(stats, "p95_latency_ms", "lower"));
+  const accurate = find(bestModel(stats, "accuracy", "higher"));
+  const cheapest = find(bestModel(stats, "cost_twd_per_correct", "lower"));
+  const insights = [];
+
+  if (fastest) {
+    insights.push({
+      key: "speed",
+      title: "重視速度",
+      model: fastest.model,
+      detail: `P95 ${formatMs(fastest.p95_latency_ms)}，成功率 ${formatPercent(fastest.success_rate)}`,
+      caveat: null,
+    });
+  }
+  if (accurate) {
+    const slow = latencyTier(accurate.p95_latency_ms) === "slow";
+    insights.push({
+      key: "accuracy",
+      title: "重視正確率",
+      model: accurate.model,
+      detail: `正確率 ${formatPercent(accurate.accuracy)}`,
+      caveat: slow ? `但 P95 達 ${formatMs(accurate.p95_latency_ms)}，需搭配逾時與重試設計` : null,
+    });
+  }
+  if (cheapest) {
+    insights.push({
+      key: "cost",
+      title: "重視成本",
+      model: cheapest.model,
+      detail: `每個正確答案 ${formatTwd(cheapest.cost_twd_per_correct, 5)}，正確率 ${formatPercent(cheapest.accuracy)}`,
+      caveat: null,
+    });
+  }
+  return insights;
+}
+
 /**
  * Accept only the offered windows from untrusted input (e.g. the URL).
  * @param {string | null | undefined} raw

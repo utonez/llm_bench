@@ -3,14 +3,82 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  barWidth,
   bestModel,
+  buildInsights,
   formatMs,
   formatPercent,
   formatTwd,
+  latencyTier,
   monthlyCostTwd,
   parseDays,
   sortRows,
 } from "./dashboard.js";
+
+const STATS = [
+  {
+    model: "qwen",
+    provider: "groq",
+    p95_latency_ms: 506,
+    accuracy: 0.952,
+    success_rate: 1,
+    cost_twd_per_correct: 0.00238,
+  },
+  {
+    model: "gemini",
+    provider: "gemini",
+    p95_latency_ms: 10602,
+    accuracy: 0.988,
+    success_rate: 0.963,
+    cost_twd_per_correct: 0.00543,
+  },
+  {
+    model: "gpt-oss",
+    provider: "groq",
+    p95_latency_ms: 844,
+    accuracy: 0.833,
+    success_rate: 1,
+    cost_twd_per_correct: 0.0013,
+  },
+];
+
+test("latencyTier buckets P95 into fast / ok / slow", () => {
+  assert.equal(latencyTier(506), "fast");
+  assert.equal(latencyTier(3400), "ok");
+  assert.equal(latencyTier(10602), "slow");
+  assert.equal(latencyTier(null), null);
+});
+
+test("barWidth is a clamped percentage of the maximum", () => {
+  assert.equal(barWidth(0.5, 1), 50);
+  assert.equal(barWidth(2, 1), 100);
+  assert.equal(barWidth(null, 1), 0);
+  assert.equal(barWidth(1, 0), 0);
+});
+
+test("buildInsights names the best model per priority with its evidence", () => {
+  const [speed, accuracy, cost] = buildInsights(STATS);
+
+  assert.equal(speed.model, "qwen");
+  assert.match(speed.detail, /506 ms/);
+  assert.equal(accuracy.model, "gemini");
+  assert.match(accuracy.detail, /98\.8%/);
+  assert.match(accuracy.caveat, /10\.6 s/); // slow tail is called out, not hidden
+  assert.equal(cost.model, "gpt-oss");
+  assert.match(cost.detail, /0\.00130/);
+});
+
+test("buildInsights omits a caveat when the most accurate model is also fast", () => {
+  const fastAndAccurate = STATS.map((s) => (s.model === "gemini" ? { ...s, p95_latency_ms: 700 } : s));
+
+  const [, accuracy] = buildInsights(fastAndAccurate);
+
+  assert.equal(accuracy.caveat, null);
+});
+
+test("buildInsights returns nothing without data", () => {
+  assert.deepEqual(buildInsights([]), []);
+});
 
 test("formatPercent shows one decimal and a dash for missing values", () => {
   assert.equal(formatPercent(0.9634), "96.3%");

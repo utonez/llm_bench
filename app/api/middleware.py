@@ -68,7 +68,7 @@ STRICT_CSP = "; ".join(
 # FastAPI's Swagger/ReDoc pages load their UI from a CDN with inline scripts; they get
 # the other headers but not the strict CSP.
 DOCS_PATHS = ("/docs", "/redoc")
-STATIC_MAX_AGE_S = 300
+VENDOR_PREFIX = "/vendor/"
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -93,6 +93,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 def _cache_control(path: str, content_type: str) -> str:
     if path.startswith(RATE_LIMITED_PREFIX):
         return "public, max-age=60"
-    if content_type.startswith("text/html"):
-        return "no-cache"  # always revalidate the page so new deploys show up
-    return f"public, max-age={STATIC_MAX_AGE_S}"
+    if path.startswith(VENDOR_PREFIX):
+        return "public, max-age=31536000, immutable"  # versioned folder names
+    # Page, app.js, styles.css: revalidate (cheap 304 via ETag) so a deploy never mixes
+    # a new page with stale scripts.
+    return "no-cache"
