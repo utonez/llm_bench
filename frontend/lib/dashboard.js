@@ -159,6 +159,56 @@ export function buildInsights(stats) {
   return insights;
 }
 
+export const PAGES = Object.freeze(["overview", "trends", "cost", "about"]);
+
+/**
+ * Page name from a location hash like "#/trends"; anything unknown is the overview.
+ * @param {string | null | undefined} hash
+ * @returns {string}
+ */
+export function parseRoute(hash) {
+  const name = String(hash ?? "").replace(/^#\/?/, "");
+  return PAGES.includes(name) ? name : "overview";
+}
+
+/** @param {number} value @returns {number} */
+const pct = (value) => Math.round(Math.max(0, Math.min(1, value)) * 100);
+
+/**
+ * 0-100 scores per model, best model = 100 on each axis. Missing data scores 0.
+ * Speed and value are "lower is better", so they use best / own.
+ * @param {readonly Record<string, any>[]} stats
+ * @returns {{ model: string, speed: number, accuracy: number, value: number }[]}
+ */
+export function scoreModels(stats) {
+  const values = (key) => stats.map((s) => s[key]).filter(isNumber);
+  const minP95 = Math.min(...values("p95_latency_ms"));
+  const maxAcc = Math.max(...values("accuracy"));
+  const minCost = Math.min(...values("cost_twd_per_correct"));
+  return stats.map((s) => ({
+    model: s.model,
+    speed: isNumber(s.p95_latency_ms) && s.p95_latency_ms > 0 ? pct(minP95 / s.p95_latency_ms) : 0,
+    accuracy: isNumber(s.accuracy) && maxAcc > 0 ? pct(s.accuracy / maxAcc) : 0,
+    value:
+      isNumber(s.cost_twd_per_correct) && s.cost_twd_per_correct > 0
+        ? pct(minCost / s.cost_twd_per_correct)
+        : 0,
+  }));
+}
+
+/**
+ * Size of the evidence behind the page.
+ * @param {readonly { runs: number, calls: number }[]} stats
+ * @returns {{ models: number, runs: number, calls: number }}
+ */
+export function summarizeScale(stats) {
+  return {
+    models: stats.length,
+    runs: stats.reduce((max, s) => Math.max(max, s.runs), 0),
+    calls: stats.reduce((sum, s) => sum + s.calls, 0),
+  };
+}
+
 /**
  * Accept only the offered windows from untrusted input (e.g. the URL).
  * @param {string | null | undefined} raw

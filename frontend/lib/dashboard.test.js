@@ -11,9 +11,48 @@ import {
   formatTwd,
   latencyTier,
   monthlyCostTwd,
+  PAGES,
   parseDays,
+  parseRoute,
+  scoreModels,
   sortRows,
+  summarizeScale,
 } from "./dashboard.js";
+
+test("scoreModels normalizes speed, accuracy and cost-efficiency to 0-100 (best = 100)", () => {
+  const scores = Object.fromEntries(
+    scoreModels([
+      { model: "a", p95_latency_ms: 500, accuracy: 0.8, cost_twd_per_correct: 0.002 },
+      { model: "b", p95_latency_ms: 1000, accuracy: 1.0, cost_twd_per_correct: 0.001 },
+      { model: "c", p95_latency_ms: null, accuracy: null, cost_twd_per_correct: null },
+    ]).map((s) => [s.model, s]),
+  );
+
+  assert.deepEqual(scores.a, { model: "a", speed: 100, accuracy: 80, value: 50 });
+  assert.deepEqual(scores.b, { model: "b", speed: 50, accuracy: 100, value: 100 });
+  assert.deepEqual(scores.c, { model: "c", speed: 0, accuracy: 0, value: 0 });
+});
+
+test("summarizeScale reports models, rounds and total calls", () => {
+  const scale = summarizeScale([
+    { model: "a", runs: 12, calls: 324 },
+    { model: "b", runs: 10, calls: 270 },
+  ]);
+
+  assert.deepEqual(scale, { models: 2, runs: 12, calls: 594 });
+  assert.deepEqual(summarizeScale([]), { models: 0, runs: 0, calls: 0 });
+});
+
+test("parseRoute maps known hashes to pages and everything else to the overview", () => {
+  assert.equal(parseRoute("#/trends"), "trends");
+  assert.equal(parseRoute("#/cost"), "cost");
+  assert.equal(parseRoute("#/about"), "about");
+  assert.equal(parseRoute("#/overview"), "overview");
+  assert.equal(parseRoute(""), "overview");
+  assert.equal(parseRoute("#/<img src=x>"), "overview");
+  assert.equal(parseRoute(undefined), "overview");
+  assert.deepEqual(PAGES, ["overview", "trends", "cost", "about"]);
+});
 
 const STATS = [
   {
