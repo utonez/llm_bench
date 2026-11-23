@@ -159,7 +159,8 @@ resource "google_cloud_run_v2_job" "bench" {
   # CI/CD owns the deployed image (it rolls out every merged commit); Terraform owns
   # everything else. Without this, `terraform apply` would roll the image back.
   lifecycle {
-    ignore_changes = [template[0].template[0].containers[0].image]
+    # client/client_version: metadata gcloud stamps on each CI rollout.
+    ignore_changes = [template[0].template[0].containers[0].image, client, client_version]
   }
 
   depends_on = [
@@ -245,7 +246,7 @@ resource "google_cloud_run_v2_service" "api" {
 
   # See the job above: CI/CD owns the image.
   lifecycle {
-    ignore_changes = [template[0].containers[0].image]
+    ignore_changes = [template[0].containers[0].image, client, client_version]
   }
 
   depends_on = [google_project_iam_member.api_firestore_read]
