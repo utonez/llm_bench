@@ -4,6 +4,11 @@ Workflow 定義：[.github/workflows/ci-cd.yml](../.github/workflows/ci-cd.yml)�
 
 ## 流程圖
 
+![CI/CD 流程圖](images/cicd.png)
+
+<details>
+<summary>Mermaid 原始碼（<code>docs/diagrams/cicd.mmd</code>）</summary>
+
 ```mermaid
 flowchart TD
     dev["開發者推送分支"] --> pr["開 Pull Request"]
@@ -31,6 +36,8 @@ flowchart TD
 
     merge --> checks --> auth --> build --> push --> roll --> smoke
 ```
+
+</details>
 
 ## 為什麼這樣設計
 
