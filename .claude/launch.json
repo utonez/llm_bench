@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dashboard-local",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set STORAGE_BACKEND=firestore&& set GCP_PROJECT_ID=llm-bench-515306&& .venv\\Scripts\\python -m uvicorn app.api.main:app --port 8765"
+      ],
+      "port": 8765
+    }
+  ]
+}

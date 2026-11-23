@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LLM 選型評測</title>
+    <meta
+      name="description"
+      content="定期以金融任務實測多家 LLM 的穩定度、延遲、正確率與新台幣成本。"
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/vendor/chartjs-4.6.1/chart.umd.min.js" defer></script>
+    <script src="/app.js" type="module"></script>
+  </head>
+  <body>
+    <header class="page-header">
+      <div class="wrap header-inner">
+        <div>
+          <p class="eyebrow">金融場景 · 每 6 小時實測</p>
+          <h1>LLM 選型評測</h1>
+          <p class="subtitle">同一組金融任務，比較各模型的穩定度、延遲、正確率與新台幣成本</p>
+        </div>
+        <nav class="window-picker" aria-label="統計區間">
+          <span class="picker-label">區間</span>
+          <button type="button" data-days="7">7 天</button>
+          <button type="button" data-days="14">14 天</button>
+          <button type="button" data-days="30">30 天</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <p id="status" class="status" role="status">載入中…</p>
+
+      <section aria-labelledby="highlights-title">
+        <h2 id="highlights-title" class="visually-hidden">重點</h2>
+        <div class="cards" id="highlights">
+          <article class="card" data-metric="p95">
+            <h3>最快（P95 最低）</h3>
+            <p class="card-value">—</p>
+            <p class="card-model">—</p>
+          </article>
+          <article class="card" data-metric="accuracy">
+            <h3>最準確</h3>
+            <p class="card-value">—</p>
+            <p class="card-model">—</p>
+          </article>
+          <article class="card" data-metric="success">
+            <h3>最穩定（成功率）</h3>
+            <p class="card-value">—</p>
+            <p class="card-model">—</p>
+          </article>
+          <article class="card" data-metric="value">
+            <h3>最划算（每個正確答案）</h3>
+            <p class="card-value">—</p>
+            <p class="card-model">—</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="board-title">
+        <div class="panel-head">
+          <h2 id="board-title">模型排行</h2>
+          <p class="hint">點選欄位標題排序；綠底為該欄最佳</p>
+        </div>
+        <div class="table-scroll">
+          <table id="leaderboard">
+            <thead>
+              <tr>
+                <th scope="col">模型</th>
+                <th scope="col"><button type="button" data-sort="success_rate">成功率</button></th>
+                <th scope="col"><button type="button" data-sort="avg_latency_ms">平均延遲</button></th>
+                <th scope="col"><button type="button" data-sort="p95_latency_ms">P95 延遲</button></th>
+                <th scope="col"><button type="button" data-sort="accuracy">正確率</button></th>
+                <th scope="col">
+                  <button type="button" data-sort="cost_twd_per_1k_calls">每千次成本</button>
+                </th>
+                <th scope="col">
+                  <button type="button" data-sort="cost_twd_per_correct">每個正確答案</button>
+                </th>
+                <th scope="col"><button type="button" data-sort="runs">輪數</button></th>
+                <th scope="col">錯誤</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="chart-grid">
+        <section class="panel" aria-labelledby="p95-title">
+          <h2 id="p95-title">P95 延遲趨勢</h2>
+          <p class="hint">每一點是一輪評測；越低越好</p>
+          <div class="chart-box"><canvas id="chart-p95" aria-label="P95 延遲趨勢圖"></canvas></div>
+        </section>
+        <section class="panel" aria-labelledby="success-title">
+          <h2 id="success-title">成功率趨勢</h2>
+          <p class="hint">失敗包含逾時、限流與伺服器錯誤</p>
+          <div class="chart-box">
+            <canvas id="chart-success" aria-label="成功率趨勢圖"></canvas>
+          </div>
+        </section>
+        <section class="panel" aria-labelledby="value-title">
+          <h2 id="value-title">成本 vs. 正確率</h2>
+          <p class="hint">越往左上越好：便宜又準確</p>
+          <div class="chart-box"><canvas id="chart-value" aria-label="成本與正確率散佈圖"></canvas></div>
+        </section>
+      </div>
+
+      <section class="panel" aria-labelledby="estimate-title">
+        <div class="panel-head">
+          <h2 id="estimate-title">每月成本試算</h2>
+          <label class="estimate-input">
+            每天呼叫次數
+            <input id="calls-per-day" type="number" min="0" max="100000000" step="1000" value="10000" />
+          </label>
+        </div>
+        <div class="table-scroll">
+          <table id="estimate">
+            <thead>
+              <tr>
+                <th scope="col">模型</th>
+                <th scope="col">每次呼叫</th>
+                <th scope="col">每月（30 天）</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel notes" aria-labelledby="notes-title">
+        <h2 id="notes-title">方法與資料來源</h2>
+        <ul>
+          <li>
+            <strong>題庫：</strong>27 題，全部有出處：Banking77（銀行客服意圖）、Financial PhraseBank（財經情緒）、
+            金管會與中央銀行新聞稿（抽取、摘要、說明）。正確率只計算有標準答案的分類與抽取題。
+          </li>
+          <li>
+            <strong>成本：</strong>OpenRouter 公開的每 token 價格 × 中央銀行新台幣對美元收盤匯率，
+            於每一輪評測當下記錄。實際呼叫使用免費額度，此數字代表「同樣流量在付費 API 上的市場參考價」。
+          </li>
+          <li>
+            <strong>延遲：</strong>從台灣（GCP asia-east1）發出請求到收到完整回應的時間，包含跨國網路。
+            P95 表示 95% 的請求比這個值快。
+          </li>
+          <li>
+            <a href="/docs">API 文件</a> ·
+            <a href="https://github.com/utonez/llm_bench" rel="noopener noreferrer">原始碼（GitHub）</a>
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="wrap footer">
+      <p id="updated">—</p>
+    </footer>
+  </body>
+</html>

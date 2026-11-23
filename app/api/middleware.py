@@ -49,14 +49,50 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return self._count <= self._limit
 
 
+# Everything the dashboard needs comes from this origin (Chart.js is vendored), so the
+# policy can be strict: no inline scripts or styles, no third-party hosts, no framing.
+STRICT_CSP = "; ".join(
+    (
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self'",
+        "img-src 'self' data:",
+        "font-src 'self'",
+        "connect-src 'self'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'none'",
+        "frame-ancestors 'none'",
+    )
+)
+# FastAPI's Swagger/ReDoc pages load their UI from a CDN with inline scripts; they get
+# the other headers but not the strict CSP.
+DOCS_PATHS = ("/docs", "/redoc")
+STATIC_MAX_AGE_S = 300
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["Referrer-Policy"] = "no-referrer"
-        if request.url.path.startswith(RATE_LIMITED_PREFIX) and response.status_code == 200:
-            response.headers["Cache-Control"] = "public, max-age=60"
+        path = request.url.path
+        headers = response.headers
+        headers["X-Content-Type-Options"] = "nosniff"
+        headers["X-Frame-Options"] = "DENY"
+        headers["Referrer-Policy"] = "no-referrer"
+        headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        if not path.startswith(DOCS_PATHS):
+            headers["Content-Security-Policy"] = STRICT_CSP
+        if response.status_code == 200:
+            headers["Cache-Control"] = _cache_control(path, headers.get("content-type", ""))
         return response
+
+
+def _cache_control(path: str, content_type: str) -> str:
+    if path.startswith(RATE_LIMITED_PREFIX):
+        return "public, max-age=60"
+    if content_type.startswith("text/html"):
+        return "no-cache"  # always revalidate the page so new deploys show up
+    return f"public, max-age={STATIC_MAX_AGE_S}"

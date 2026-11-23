@@ -1,0 +1,9 @@
+{
+  "name": "llm-bench-dashboard",
+  "private": true,
+  "type": "module",
+  "description": "Static dashboard served by the query API. No build step, no runtime dependencies besides vendored Chart.js.",
+  "scripts": {
+    "test": "node --test \"lib/**/*.test.js\""
+  }
+}

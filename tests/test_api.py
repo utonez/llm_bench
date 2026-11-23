@@ -150,6 +150,50 @@ async def test_security_headers_are_set(client):
     assert response.headers["x-content-type-options"] == "nosniff"
 
 
+async def test_dashboard_is_served_at_root_with_strict_csp(client):
+    response = await client.get("/")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "LLM 選型評測" in response.text
+    csp = response.headers["content-security-policy"]
+    assert "default-src 'self'" in csp
+    assert "script-src 'self'" in csp
+    assert "unsafe-inline" not in csp
+    assert "frame-ancestors 'none'" in csp
+    assert response.headers["cache-control"] == "no-cache"
+
+
+async def test_dashboard_assets_are_served(client):
+    script = await client.get("/app.js")
+    chart = await client.get("/vendor/chartjs-4.6.1/chart.umd.min.js")
+
+    assert script.status_code == 200
+    assert "javascript" in script.headers["content-type"]
+    assert chart.status_code == 200
+
+
+async def test_api_docs_keep_working_without_the_strict_policy(client):
+    response = await client.get("/docs")
+
+    assert response.status_code == 200
+    assert "content-security-policy" not in response.headers
+
+
+async def test_static_files_cannot_escape_the_frontend_folder(client):
+    for path in ("/../app/config.py", "/%2e%2e/app/config.py", "/..%2Fpyproject.toml"):
+        response = await client.get(path)
+        assert response.status_code == 404, path
+        assert "storage_backend" not in response.text
+
+
+async def test_hsts_and_permissions_policy_are_set(client):
+    response = await client.get("/")
+
+    assert "max-age=" in response.headers["strict-transport-security"]
+    assert "camera=()" in response.headers["permissions-policy"]
+
+
 async def test_internal_errors_do_not_leak_details(repo):
     class BrokenRepo(InMemoryResultRepository):
         def list_summaries(self, since=None, limit=1000):
