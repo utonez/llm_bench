@@ -1,0 +1,141 @@
+# CI on every pull request; CD on every push to main.
+#
+# Security model
+# - Third-party actions are pinned to full commit SHAs (a moved tag cannot change what runs).
+# - Default token is read-only. Only the deploy job may request an OIDC token.
+# - GCP access uses Workload Identity Federation: no key is stored in GitHub. The GCP
+#   provider accepts tokens only from this repo's main branch (infra/terraform/cicd.tf),
+#   so pull requests — including from forks — can never obtain deploy credentials.
+# - The deployer can push images and roll out new revisions; it cannot change IAM
+#   or create resources. Infrastructure changes go through a reviewed `terraform apply`.
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  REGION: asia-east1
+  PROJECT_ID: llm-bench-515306
+  IMAGE: asia-east1-docker.pkg.dev/llm-bench-515306/llm-bench/bench
+  WIF_PROVIDER: projects/1094512638672/locations/global/workloadIdentityPools/github/providers/github-oidc
+  DEPLOYER: gh-deployer@llm-bench-515306.iam.gserviceaccount.com
+  API_URL: https://llm-bench-api-ceu3sadvyq-de.a.run.app
+
+jobs:
+  python:
+    name: Python tests & lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Install (runtime deps verified by hash)
+        run: |
+          python -m pip install --require-hashes -r requirements.lock
+          python -m pip install -e ".[dev]"
+      - name: Lint
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Test
+        run: pytest -q --cov=app --cov=jobs --cov-report=term-missing
+
+  frontend:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+      - name: Test
+        working-directory: frontend
+        run: node --test "lib/**/*.test.js"
+
+  terraform:
+    name: Terraform fmt & validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.17.1"
+      - name: Validate (no backend, no credentials)
+        working-directory: infra/terraform
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false
+          terraform validate
+
+  image:
+    name: Docker build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build (not pushed)
+        run: docker build --tag bench:ci .
+
+  deploy:
+    name: Deploy to Cloud Run
+    needs: [python, frontend, terraform]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write # OIDC token for Workload Identity Federation
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Authenticate to GCP (keyless)
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOYER }}
+
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
+      - name: Build and push image
+        id: image
+        run: |
+          TAG="${GITHUB_SHA::7}"
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build --tag "${IMAGE}:${TAG}" --tag "${IMAGE}:latest" .
+          docker push "${IMAGE}:${TAG}"
+          docker push "${IMAGE}:latest"
+          echo "ref=${IMAGE}:${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Roll out benchmark job
+        run: gcloud run jobs update llm-bench-job --image "${{ steps.image.outputs.ref }}" --region "$REGION" --project "$PROJECT_ID" --quiet
+
+      - name: Roll out API + dashboard
+        run: gcloud run services update llm-bench-api --image "${{ steps.image.outputs.ref }}" --region "$REGION" --project "$PROJECT_ID" --quiet
+
+      - name: Smoke test
+        run: |
+          curl -fsS "$API_URL/health" | grep -q '"ok"'
+          curl -fsS "$API_URL/v1/models" | grep -q '"success":true'
+          curl -fsS -o /dev/null "$API_URL/"
+          echo "deployed ${{ steps.image.outputs.ref }}"

@@ -8,6 +8,16 @@ output "api_url" {
   value       = google_cloud_run_v2_service.api.uri
 }
 
+output "github_wif_provider" {
+  description = "Value for google-github-actions/auth `workload_identity_provider`."
+  value       = google_iam_workload_identity_pool_provider.github.name
+}
+
+output "github_deployer_email" {
+  description = "Value for google-github-actions/auth `service_account`."
+  value       = google_service_account.deployer.email
+}
+
 output "job_name" {
   value = google_cloud_run_v2_job.bench.name
 }
