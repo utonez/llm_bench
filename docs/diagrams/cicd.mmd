@@ -1,0 +1,25 @@
+flowchart TD
+    dev["開發者推送分支"] --> pr["開 Pull Request"]
+
+    subgraph CI["CI：每個 PR（不接觸雲端）"]
+        py["Python<br/>ruff lint + format<br/>pytest（122 個測試）"]
+        fe["前端<br/>node:test（15 個測試）"]
+        tf["Terraform<br/>fmt + validate"]
+        img["Docker 建置<br/>（不推送）"]
+    end
+
+    pr --> py & fe & tf & img
+    py & fe & tf & img --> gate{"main 分支保護<br/>4 項檢查全部通過？"}
+    gate -- 否 --> fix["修正後再推送"] --> pr
+    gate -- 是 --> merge["合併到 main"]
+
+    subgraph CD["CD：推送到 main"]
+        checks["再跑一次 Python / 前端 / Terraform 檢查"]
+        auth["向 GCP 取得臨時憑證<br/>（Workload Identity Federation，不用金鑰）"]
+        build["建置映像檔<br/>tag = commit SHA"]
+        push["推送到 Artifact Registry"]
+        roll["更新 Cloud Run Job<br/>更新 Cloud Run Service"]
+        smoke["線上 smoke test<br/>/health、/v1/models、/"]
+    end
+
+    merge --> checks --> auth --> build --> push --> roll --> smoke

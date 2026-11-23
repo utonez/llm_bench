@@ -4,6 +4,11 @@
 
 ## 流程圖
 
+![Git 協作流程圖](images/git-flow.png)
+
+<details>
+<summary>Mermaid 原始碼（<code>docs/diagrams/git-flow.mmd</code>）</summary>
+
 ```mermaid
 flowchart LR
     main1(["main"]) --> branch["建立功能分支<br/>feat/… · fix/… · ci/… · docs/…"]
@@ -17,6 +22,13 @@ flowchart LR
     merge --> deploy["自動部署到 Cloud Run<br/>+ smoke test"]
     merge --> del["刪除功能分支"]
 ```
+
+</details>
+
+![本專案的分支與合併歷史](images/git-history.png)
+
+<details>
+<summary>Mermaid 原始碼（<code>docs/diagrams/git-history.mmd</code>）</summary>
 
 ```mermaid
 gitGraph
@@ -40,6 +52,8 @@ gitGraph
     checkout main
     merge ci/github-actions id: "#6"
 ```
+
+</details>
 
 ## 規則
 

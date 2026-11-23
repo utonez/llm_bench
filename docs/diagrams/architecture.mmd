@@ -1,0 +1,37 @@
+flowchart LR
+    user["使用者瀏覽器"]
+
+    subgraph GH["GitHub"]
+        repo["utonez/llm_bench"]
+        gha["GitHub Actions<br/>CI/CD"]
+    end
+
+    subgraph GCP["GCP 專案 · asia-east1（台灣彰化）"]
+        api["Cloud Run Service<br/>llm-bench-api<br/>API 與儀表板"]
+        sched["Cloud Scheduler<br/>每 6 小時"]
+        job["Cloud Run Job<br/>llm-bench-job<br/>執行一輪評測"]
+        fs[("Firestore<br/>bench_results<br/>run_summaries")]
+        sm["Secret Manager<br/>供應商 API 金鑰"]
+        ar["Artifact Registry<br/>容器映像檔"]
+        wif["Workload Identity<br/>Federation"]
+    end
+
+    subgraph EXT["外部 RESTful API"]
+        gemini["Google Gemini"]
+        groq["Groq"]
+        orp["OpenRouter<br/>模型價格"]
+        cbc["中央銀行<br/>新台幣對美元匯率"]
+    end
+
+    user -->|HTTPS| api
+    api -->|唯讀| fs
+    sched -->|OAuth 觸發| job
+    job -->|讀取金鑰| sm
+    job -->|評測呼叫| gemini & groq
+    job -->|每輪查價| orp & cbc
+    job -->|寫入結果| fs
+    repo -->|PR / 合併| gha
+    gha -->|OIDC → 臨時憑證| wif
+    gha -->|推送映像檔| ar
+    gha -->|部署新版本| job & api
+    ar -.->|拉取| job & api

@@ -1,0 +1,11 @@
+flowchart LR
+    main1(["main"]) --> branch["建立功能分支<br/>feat/… · fix/… · ci/… · docs/…"]
+    branch --> commit["小步 commit<br/>Conventional Commits"]
+    commit --> push["推送並開 PR<br/>說明：做了什麼、為什麼、怎麼驗證"]
+    push --> ci["CI 自動檢查<br/>測試 · lint · Terraform · Docker"]
+    ci --> review["Code review<br/>討論與修改"]
+    review --> rules{"分支保護<br/>CI 通過？<br/>討論已解決？"}
+    rules -- 否 --> commit
+    rules -- 是 --> merge(["合併到 main"])
+    merge --> deploy["自動部署到 Cloud Run<br/>+ smoke test"]
+    merge --> del["刪除功能分支"]

@@ -1,0 +1,20 @@
+gitGraph
+    commit id: "scaffold"
+    branch feat/bench-core
+    commit id: "評測核心"
+    commit id: "有出處的題庫"
+    checkout main
+    merge feat/bench-core id: "#1"
+    branch feat/providers
+    commit id: "真實供應商"
+    checkout main
+    merge feat/providers id: "#2"
+    branch feat/gcp-infra
+    commit id: "Terraform + Job"
+    commit id: "安全修正"
+    checkout main
+    merge feat/gcp-infra id: "#3"
+    branch ci/github-actions
+    commit id: "CI/CD + WIF"
+    checkout main
+    merge ci/github-actions id: "#6"

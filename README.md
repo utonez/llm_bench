@@ -37,6 +37,11 @@
 
 ## 系統架構
 
+![系統架構圖](docs/images/architecture.png)
+
+<details>
+<summary>Mermaid 原始碼（<code>docs/diagrams/architecture.mmd</code>）</summary>
+
 ```mermaid
 flowchart LR
     user["使用者瀏覽器"]
@@ -47,7 +52,7 @@ flowchart LR
     end
 
     subgraph GCP["GCP 專案 · asia-east1（台灣彰化）"]
-        api["Cloud Run Service<br/>llm-bench-api<br/>查詢 API + 儀表板"]
+        api["Cloud Run Service<br/>llm-bench-api<br/>API 與儀表板"]
         sched["Cloud Scheduler<br/>每 6 小時"]
         job["Cloud Run Job<br/>llm-bench-job<br/>執行一輪評測"]
         fs[("Firestore<br/>bench_results<br/>run_summaries")]
@@ -76,6 +81,8 @@ flowchart LR
     gha -->|部署新版本| job & api
     ar -.->|拉取| job & api
 ```
+
+</details>
 
 **兩條主要流程：**
 
