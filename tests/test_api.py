@@ -155,7 +155,7 @@ async def test_dashboard_is_served_at_root_with_strict_csp(client):
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
-    assert "LLM 選型評測" in response.text
+    assert "金融場景 LLM 評測報告" in response.text
     csp = response.headers["content-security-policy"]
     assert "default-src 'self'" in csp
     assert "script-src 'self'" in csp
