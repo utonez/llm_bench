@@ -10,6 +10,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.dependencies import get_settings
@@ -43,6 +44,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health_router)
     app.include_router(v1_router)
     _register_error_handlers(app)
+
+    # Dashboard: same origin as the API, so no CORS is needed for it. Mounted last so
+    # API routes win. StaticFiles resolves paths inside this directory only.
+    if settings.frontend_dir.is_dir():
+        app.mount("/", StaticFiles(directory=settings.frontend_dir, html=True), name="dashboard")
     return app
 
 

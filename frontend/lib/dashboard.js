@@ -1,0 +1,220 @@
+// Pure dashboard logic: no DOM, no network. Unit-tested with `node --test`.
+
+/** @typedef {"asc" | "desc"} SortDirection */
+/** @typedef {"lower" | "higher"} Better */
+
+export const DAY_OPTIONS = Object.freeze([7, 14, 30]);
+export const DEFAULT_DAYS = 7;
+const DAYS_PER_MONTH = 30;
+const MISSING = "—";
+
+/** @param {unknown} value @returns {value is number} */
+const isNumber = (value) => typeof value === "number" && Number.isFinite(value);
+
+/**
+ * @param {number | null | undefined} ratio 0..1
+ * @returns {string}
+ */
+export function formatPercent(ratio) {
+  return isNumber(ratio) ? `${(ratio * 100).toFixed(1)}%` : MISSING;
+}
+
+/**
+ * @param {number | null | undefined} ms
+ * @returns {string}
+ */
+export function formatMs(ms) {
+  if (!isNumber(ms)) return MISSING;
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`;
+}
+
+/**
+ * @param {number | null | undefined} amount
+ * @param {number} [digits]
+ * @returns {string}
+ */
+export function formatTwd(amount, digits = 2) {
+  if (!isNumber(amount)) return MISSING;
+  const text = amount.toLocaleString("en-US", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+  return `NT$ ${text}`;
+}
+
+/**
+ * Projected monthly spend for a given daily volume.
+ * @param {number | null | undefined} costPerCallTwd
+ * @param {number} callsPerDay
+ * @returns {number | null}
+ */
+export function monthlyCostTwd(costPerCallTwd, callsPerDay) {
+  if (!isNumber(costPerCallTwd) || !isNumber(callsPerDay) || callsPerDay < 0) return null;
+  return costPerCallTwd * callsPerDay * DAYS_PER_MONTH;
+}
+
+/**
+ * Returns a new sorted array; missing values always sort last.
+ * @template {Record<string, unknown>} T
+ * @param {readonly T[]} rows
+ * @param {keyof T & string} key
+ * @param {SortDirection} direction
+ * @returns {T[]}
+ */
+export function sortRows(rows, key, direction) {
+  const sign = direction === "asc" ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const x = a[key];
+    const y = b[key];
+    if (!isNumber(x) && !isNumber(y)) return 0;
+    if (!isNumber(x)) return 1;
+    if (!isNumber(y)) return -1;
+    return (x - y) * sign;
+  });
+}
+
+/**
+ * Model id with the best value for a metric, or null when nothing is measurable.
+ * @param {readonly Record<string, unknown>[]} rows
+ * @param {string} key
+ * @param {Better} better
+ * @returns {string | null}
+ */
+export function bestModel(rows, key, better) {
+  const measured = rows.filter((row) => isNumber(row[key]));
+  if (measured.length === 0) return null;
+  const [best] = sortRows(measured, key, better === "lower" ? "asc" : "desc");
+  return /** @type {string} */ (best.model);
+}
+
+const FAST_MS = 1000;
+const SLOW_MS = 5000;
+
+/**
+ * @param {number | null | undefined} p95Ms
+ * @returns {"fast" | "ok" | "slow" | null}
+ */
+export function latencyTier(p95Ms) {
+  if (!isNumber(p95Ms)) return null;
+  if (p95Ms < FAST_MS) return "fast";
+  return p95Ms < SLOW_MS ? "ok" : "slow";
+}
+
+/**
+ * Bar length in percent of the maximum, clamped to 0..100.
+ * @param {number | null | undefined} value
+ * @param {number} max
+ * @returns {number}
+ */
+export function barWidth(value, max) {
+  if (!isNumber(value) || !isNumber(max) || max <= 0) return 0;
+  return Math.max(0, Math.min(100, (value / max) * 100));
+}
+
+/**
+ * @typedef {{ key: string, title: string, model: string, detail: string, caveat: string | null }} Insight
+ */
+
+/**
+ * One recommendation per priority (speed, accuracy, cost), each with its evidence.
+ * A slow tail on the most accurate model is called out instead of hidden.
+ * @param {readonly Record<string, any>[]} stats
+ * @returns {Insight[]}
+ */
+export function buildInsights(stats) {
+  const find = (model) => stats.find((s) => s.model === model);
+  const fastest = find(bestModel(stats, "p95_latency_ms", "lower"));
+  const accurate = find(bestModel(stats, "accuracy", "higher"));
+  const cheapest = find(bestModel(stats, "cost_twd_per_correct", "lower"));
+  const insights = [];
+
+  if (fastest) {
+    insights.push({
+      key: "speed",
+      title: "重視速度",
+      model: fastest.model,
+      detail: `P95 ${formatMs(fastest.p95_latency_ms)}，成功率 ${formatPercent(fastest.success_rate)}`,
+      caveat: null,
+    });
+  }
+  if (accurate) {
+    const slow = latencyTier(accurate.p95_latency_ms) === "slow";
+    insights.push({
+      key: "accuracy",
+      title: "重視正確率",
+      model: accurate.model,
+      detail: `正確率 ${formatPercent(accurate.accuracy)}`,
+      caveat: slow ? `但 P95 達 ${formatMs(accurate.p95_latency_ms)}，需搭配逾時與重試設計` : null,
+    });
+  }
+  if (cheapest) {
+    insights.push({
+      key: "cost",
+      title: "重視成本",
+      model: cheapest.model,
+      detail: `每個正確答案 ${formatTwd(cheapest.cost_twd_per_correct, 5)}，正確率 ${formatPercent(cheapest.accuracy)}`,
+      caveat: null,
+    });
+  }
+  return insights;
+}
+
+export const PAGES = Object.freeze(["overview", "trends", "cost", "about"]);
+
+/**
+ * Page name from a location hash like "#/trends"; anything unknown is the overview.
+ * @param {string | null | undefined} hash
+ * @returns {string}
+ */
+export function parseRoute(hash) {
+  const name = String(hash ?? "").replace(/^#\/?/, "");
+  return PAGES.includes(name) ? name : "overview";
+}
+
+/** @param {number} value @returns {number} */
+const pct = (value) => Math.round(Math.max(0, Math.min(1, value)) * 100);
+
+/**
+ * 0-100 scores per model, best model = 100 on each axis. Missing data scores 0.
+ * Speed and value are "lower is better", so they use best / own.
+ * @param {readonly Record<string, any>[]} stats
+ * @returns {{ model: string, speed: number, accuracy: number, value: number }[]}
+ */
+export function scoreModels(stats) {
+  const values = (key) => stats.map((s) => s[key]).filter(isNumber);
+  const minP95 = Math.min(...values("p95_latency_ms"));
+  const maxAcc = Math.max(...values("accuracy"));
+  const minCost = Math.min(...values("cost_twd_per_correct"));
+  return stats.map((s) => ({
+    model: s.model,
+    speed: isNumber(s.p95_latency_ms) && s.p95_latency_ms > 0 ? pct(minP95 / s.p95_latency_ms) : 0,
+    accuracy: isNumber(s.accuracy) && maxAcc > 0 ? pct(s.accuracy / maxAcc) : 0,
+    value:
+      isNumber(s.cost_twd_per_correct) && s.cost_twd_per_correct > 0
+        ? pct(minCost / s.cost_twd_per_correct)
+        : 0,
+  }));
+}
+
+/**
+ * Size of the evidence behind the page.
+ * @param {readonly { runs: number, calls: number }[]} stats
+ * @returns {{ models: number, runs: number, calls: number }}
+ */
+export function summarizeScale(stats) {
+  return {
+    models: stats.length,
+    runs: stats.reduce((max, s) => Math.max(max, s.runs), 0),
+    calls: stats.reduce((sum, s) => sum + s.calls, 0),
+  };
+}
+
+/**
+ * Accept only the offered windows from untrusted input (e.g. the URL).
+ * @param {string | null | undefined} raw
+ * @returns {number}
+ */
+export function parseDays(raw) {
+  const value = Number.parseInt(String(raw ?? ""), 10);
+  return DAY_OPTIONS.includes(value) ? value : DEFAULT_DAYS;
+}

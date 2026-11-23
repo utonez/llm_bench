@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = []  # CORS: the dashboard origin(s); empty = same-origin only
     api_rate_limit_per_minute: int = Field(default=120, ge=1)
     api_cache_ttl_s: float = Field(default=300.0, ge=0)
+    frontend_dir: Path = PROJECT_ROOT / "frontend"  # served at "/" when it exists
 
     # Provider keys: .env locally, Secret Manager in the cloud. Never logged (SecretStr).
     gemini_api_key: SecretStr | None = None

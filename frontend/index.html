@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>金融場景 LLM 評測報告</title>
+    <meta
+      name="description"
+      content="以 27 題有出處的金融任務，每 6 小時自動實測各模型的穩定度、延遲、正確率與新台幣成本。"
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/vendor/chartjs-4.6.1/chart.umd.min.js" defer></script>
+    <script src="/app.js" type="module"></script>
+  </head>
+  <body class="is-loading">
+    <header class="topbar">
+      <div class="wrap topbar-inner">
+        <a class="brand" href="#/overview">
+          <img src="/favicon.svg" alt="" width="24" height="24" />
+          <span>LLM Bench</span>
+        </a>
+        <nav class="tabs" aria-label="頁面">
+          <a href="#/overview" data-page="overview">總覽</a>
+          <a href="#/trends" data-page="trends">趨勢</a>
+          <a href="#/cost" data-page="cost">成本</a>
+          <a href="#/about" data-page="about">方法與來源</a>
+        </nav>
+        <div class="topbar-controls">
+          <p class="live"><span class="live-dot" aria-hidden="true"></span><span id="updated">讀取中…</span></p>
+          <div class="segmented" role="group" aria-label="統計區間">
+            <button type="button" data-days="7">7 天</button>
+            <button type="button" data-days="14">14 天</button>
+            <button type="button" data-days="30">30 天</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <p id="status" class="status wrap" role="status" hidden></p>
+
+    <main>
+      <!-- ── 總覽 ─────────────────────────────────────────────── -->
+      <section class="page" data-page="overview" aria-labelledby="overview-title">
+        <div class="hero">
+          <div class="wrap">
+            <p class="eyebrow">Benchmark Report · Financial Services</p>
+            <h1 id="overview-title">金融場景 LLM 評測報告</h1>
+            <p class="lead">
+              以 27 題有出處的金融任務，每 6 小時自動實測各模型的穩定度、延遲、正確率與新台幣成本，作為模型選型的量化依據。
+            </p>
+
+            <dl class="scale" id="scale">
+              <div><dt>受測模型</dt><dd data-scale="models">—</dd></div>
+              <div><dt>評測輪數</dt><dd data-scale="runs">—</dd></div>
+              <div><dt>累計呼叫</dt><dd data-scale="calls">—</dd></div>
+              <div><dt>題庫</dt><dd>27<span class="unit">題</span></dd></div>
+            </dl>
+
+            <h2 class="verdict-title">本期結論</h2>
+            <div class="verdict-grid" id="verdict">
+              <article class="insight skeleton"></article>
+              <article class="insight skeleton"></article>
+              <article class="insight skeleton"></article>
+            </div>
+          </div>
+        </div>
+
+        <div class="wrap">
+          <section class="section" aria-labelledby="kpi-title">
+            <h2 id="kpi-title" class="section-title">關鍵指標</h2>
+            <div class="kpis">
+              <article class="kpi" data-metric="p95">
+                <h3>最快 · P95 延遲</h3>
+                <p class="kpi-value">—</p>
+                <p class="kpi-model">—</p>
+              </article>
+              <article class="kpi" data-metric="accuracy">
+                <h3>最準確 · 正確率</h3>
+                <p class="kpi-value">—</p>
+                <p class="kpi-model">—</p>
+              </article>
+              <article class="kpi" data-metric="success">
+                <h3>最穩定 · 成功率</h3>
+                <p class="kpi-value">—</p>
+                <p class="kpi-model">—</p>
+              </article>
+              <article class="kpi" data-metric="value">
+                <h3>最划算 · 每個正確答案</h3>
+                <p class="kpi-value">—</p>
+                <p class="kpi-model">—</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="section" aria-labelledby="score-title">
+            <div class="section-head">
+              <h2 id="score-title" class="section-title">模型能力比較</h2>
+              <p class="section-hint">各項以最佳模型為 100 分；成本效益 = 每個正確答案的成本</p>
+            </div>
+            <div class="card scorecard" id="scorecard"></div>
+          </section>
+
+          <section class="section" aria-labelledby="board-title">
+            <div class="section-head">
+              <h2 id="board-title" class="section-title">模型排行</h2>
+              <p class="section-hint">
+                點選欄位標題排序 · 延遲：<span class="tier tier-fast">&lt; 1 秒</span><span class="tier tier-ok">1–5 秒</span><span class="tier tier-slow">&gt; 5 秒</span>
+              </p>
+            </div>
+            <div class="card table-card">
+              <div class="table-scroll">
+                <table id="leaderboard">
+                  <thead>
+                    <tr>
+                      <th scope="col" class="col-rank">#</th>
+                      <th scope="col" class="col-model">模型</th>
+                      <th scope="col"><button type="button" data-sort="success_rate">成功率</button></th>
+                      <th scope="col"><button type="button" data-sort="p95_latency_ms">P95 延遲</button></th>
+                      <th scope="col"><button type="button" data-sort="avg_latency_ms">平均延遲</button></th>
+                      <th scope="col"><button type="button" data-sort="accuracy">正確率</button></th>
+                      <th scope="col"><button type="button" data-sort="cost_twd_per_1k_calls">每千次成本</button></th>
+                      <th scope="col"><button type="button" data-sort="cost_twd_per_correct">每個正確答案</button></th>
+                      <th scope="col"><button type="button" data-sort="runs">輪數</button></th>
+                      <th scope="col" class="col-errors">錯誤</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- ── 趨勢 ─────────────────────────────────────────────── -->
+      <section class="page" data-page="trends" aria-labelledby="trends-title" hidden>
+        <div class="wrap">
+          <header class="page-head">
+            <h1 id="trends-title">趨勢</h1>
+            <p>每一點代表一輪評測。觀察延遲與穩定度是否隨時間波動，而不只看平均值。</p>
+          </header>
+          <article class="card chart-card">
+            <h2>P95 延遲（對數刻度）</h2>
+            <p class="card-hint">對數刻度讓秒級與毫秒級的模型能在同一張圖比較；越低越好</p>
+            <div class="chart-box tall"><canvas id="chart-p95" aria-label="P95 延遲趨勢圖"></canvas></div>
+          </article>
+          <article class="card chart-card">
+            <h2>成功率</h2>
+            <p class="card-hint">失敗包含逾時、限流與伺服器錯誤</p>
+            <div class="chart-box"><canvas id="chart-success" aria-label="成功率趨勢圖"></canvas></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ── 成本 ─────────────────────────────────────────────── -->
+      <section class="page" data-page="cost" aria-labelledby="cost-title" hidden>
+        <div class="wrap">
+          <header class="page-head">
+            <h1 id="cost-title">成本與品質</h1>
+            <p>成本為市場參考價：OpenRouter 公開的每 token 價格 × 中央銀行新台幣對美元收盤匯率。</p>
+          </header>
+          <div class="grid-2">
+            <article class="card chart-card">
+              <h2>成本 vs. 正確率</h2>
+              <p class="card-hint">越往左上越好：便宜又準確</p>
+              <div class="chart-box"><canvas id="chart-value" aria-label="成本與正確率散佈圖"></canvas></div>
+            </article>
+            <article class="card">
+              <div class="estimate-head">
+                <h2>每月成本試算</h2>
+                <label class="estimate-input">
+                  每天呼叫
+                  <input id="calls-per-day" type="number" min="0" max="100000000" step="1000" value="10000" inputmode="numeric" />
+                  次
+                </label>
+              </div>
+              <table id="estimate" class="estimate-table">
+                <thead>
+                  <tr>
+                    <th scope="col" class="col-model">模型</th>
+                    <th scope="col">每次呼叫</th>
+                    <th scope="col">每月（30 天）</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── 方法與來源 ───────────────────────────────────────── -->
+      <section class="page" data-page="about" aria-labelledby="about-title" hidden>
+        <div class="wrap">
+          <header class="page-head">
+            <h1 id="about-title">方法與資料來源</h1>
+            <p>所有題目與數據皆可追溯至原始來源。</p>
+          </header>
+          <div class="notes">
+            <article class="card">
+              <h2>題庫</h2>
+              <p>27 題，全部有出處，沒有自行編造的題目。正確率只計算有標準答案的分類與抽取題。</p>
+              <ul>
+                <li>Banking77：真實銀行客服提問的意圖分類（CC BY 4.0）</li>
+                <li>Financial PhraseBank：財經新聞情緒判斷（CC BY-NC-SA 3.0）</li>
+                <li>金管會與中央銀行新聞稿：抽取、摘要、說明（公文）</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h2>成本</h2>
+              <p>
+                OpenRouter 公開的每 token 價格 × 中央銀行新台幣對美元收盤匯率，於每一輪評測當下記錄，之後價格變動不會改寫歷史。實際呼叫使用免費額度，此數字代表同樣流量在付費 API 上的市場參考價。
+              </p>
+            </article>
+            <article class="card">
+              <h2>延遲與穩定度</h2>
+              <p>
+                從台灣（GCP asia-east1）發出請求到收到完整回應的時間，包含跨國網路。P95 表示 95% 的請求比這個值快。評測不自動重試，失敗如實記錄。
+              </p>
+            </article>
+            <article class="card">
+              <h2>架構</h2>
+              <p>
+                Cloud Scheduler 每 6 小時觸發 Cloud Run Job 執行評測，結果存入 Firestore；本頁與查詢 API 由 Cloud Run 服務提供。全部資源以 Terraform 建立。
+              </p>
+              <p class="links"><a href="/docs">API 文件</a><a href="https://github.com/utonez/llm_bench" rel="noopener noreferrer">原始碼（GitHub）</a></p>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <p>金融場景 LLM 評測報告 · GCP Cloud Run · 資料每 6 小時更新</p>
+        <p><a href="/docs">API 文件</a><a href="https://github.com/utonez/llm_bench" rel="noopener noreferrer">原始碼</a></p>
+      </div>
+    </footer>
+  </body>
+</html>

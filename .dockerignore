@@ -13,6 +13,10 @@ htmlcov
 
 tests
 docs
-frontend
 infra
 .github
+.claude
+
+# The dashboard ships, its tests and tooling do not.
+frontend/**/*.test.js
+frontend/package.json
