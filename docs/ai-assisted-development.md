@@ -17,6 +17,18 @@
 | 儀表板要分頁、首頁要有視覺化設計 | 改版前端，並在瀏覽器實際確認 |
 | 每個 PR 是否合併、每次部署是否執行 | 撰寫程式、測試、Terraform、CI/CD 與文件 |
 
+## 讓 Claude Code 更厲害：串接 skills 與規則
+
+開發前，我先替 Claude Code 安裝了開源的 **ECC（Everything Claude Code）** 規則與外掛，讓 AI 依照固定的工程標準工作，而不是每次憑感覺：
+
+| 安裝的內容 | 作用 |
+|---|---|
+| **共通開發規則**（coding style、testing、security、git workflow） | 要求 AI 遵守一致的規範，例如先寫測試再實作、不把金鑰寫進程式、使用 Conventional Commits |
+| **Skills 與專門 agents**（TDD、code review、security review、FastAPI 等） | 遇到特定任務時套用對應的做法，例如部署前依安全檢查清單審查程式碼與雲端設定 |
+| **GateGuard hook** | AI 在建立新檔案或執行刪除類指令前，必須先說明影響範圍、回復方式，並引用我的原始指示，避免 AI 自作主張 |
+
+安裝前，我先請 AI 審查這個外掛的 hooks 會執行哪些指令，確認沒有安全疑慮才安裝。對外部工具也一樣：先審核，再使用。
+
 ## 工作流程
 
 1. **我提出想法與需求**：說明要做什麼、為什麼要做
