@@ -29,3 +29,6 @@ node_modules/
 dist/
 .DS_Store
 Thumbs.db
+
+# Local Claude Code settings (per developer)
+.claude/
