@@ -10,6 +10,24 @@
 | API 文件（Swagger） | https://llm-bench-api-ceu3sadvyq-de.a.run.app/docs |
 | 開發計畫 | [docs/PLAN.md](docs/PLAN.md) |
 
+## 繳交項目對照
+
+| 繳交項目 | 對應內容 |
+|---|---|
+| Python 原始碼 | [app/](app/)（FastAPI 查詢 API、評測核心）、[jobs/](jobs/)（排程評測進入點）、[tests/](tests/)（122 個測試） |
+| Git 儲存庫 | 本 repo：https://github.com/utonez/llm_bench |
+| 雲端架構圖 | 本頁 [系統架構](#系統架構)；圖檔 [docs/images/architecture.png](docs/images/architecture.png) |
+| 用途、功能、服務選用原因 | 本頁 [為什麼做這個](#為什麼做這個)、[主要功能](#主要功能)、[雲端服務與選用原因](#雲端服務與選用原因)；完整理由見 [docs/adr/](docs/adr/) |
+
+| 加分項目 | 成果 |
+|---|---|
+| ① 前端 | [線上儀表板](https://llm-bench-api-ceu3sadvyq-de.a.run.app/)（四頁：總覽、趨勢、成本、方法與來源）；原始碼 [frontend/](frontend/) |
+| ② 第三方 RESTful API | Gemini、Groq（模型評測）、OpenRouter（模型價格）、中央銀行（新台幣匯率）；見 [app/providers/](app/providers/)、[app/pricing/](app/pricing/) |
+| ③ CI/CD | GitHub Actions：PR 自動測試，合併後自動部署並做 smoke test；[workflow](.github/workflows/ci-cd.yml)、[流程圖與說明](docs/cicd.md)、[執行紀錄](https://github.com/utonez/llm_bench/actions) |
+| ④ 多人協作 Git 流程圖 | [docs/git-workflow.md](docs/git-workflow.md)：流程圖、分支歷史圖與規則；所有變更皆經過分支 → PR → CI → 合併（[PR 紀錄](https://github.com/utonez/llm_bench/pulls?q=is%3Apr+is%3Amerged)） |
+| ⑤ IaC | [infra/terraform/](infra/terraform/)：所有 GCP 資源皆以 Terraform 建立；部署步驟見 [infra/README.md](infra/README.md) |
+| ⑥ AI 輔助開發 | [docs/ai-assisted-development.md](docs/ai-assisted-development.md)：分工方式、串接的 skills、人工審核流程與心得 |
+
 ---
 
 ## 為什麼做這個
@@ -139,20 +157,6 @@ flowchart LR
 ## 成本
 
 全部資源都在 GCP 免費額度內運作，LLM 呼叫也使用各供應商的免費額度。唯一確定的費用是 Terraform 狀態儲存桶（asia-east1，檔案僅數 KB，每月遠低於新台幣 1 元）。帳單帳戶另設有預算警報。
-
-## 題目要求與加分項對照
-
-| 項目 | 對應內容 |
-|---|---|
-| Python 程式碼 | `app/`（FastAPI、評測核心）、`jobs/`（排程進入點） |
-| 雲端架構圖 | 本頁「系統架構」 |
-| 用途、功能、服務選用原因 | 本頁，以及 [docs/adr/](docs/adr/) |
-| ① 前端 | [frontend/](frontend/)：四頁式儀表板 |
-| ② 第三方 RESTful API | Gemini、Groq、OpenRouter（價格）、中央銀行（匯率） |
-| ③ CI/CD | [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml)、[docs/cicd.md](docs/cicd.md) |
-| ④ 多人協作 Git 流程 | [docs/git-workflow.md](docs/git-workflow.md)：8 個 PR 皆經過分支 → PR → CI → 合併 |
-| ⑤ IaC | [infra/terraform/](infra/terraform/) |
-| ⑥ AI 輔助開發 | [docs/ai-assisted-development.md](docs/ai-assisted-development.md) |
 
 ## 本機執行
 

@@ -82,5 +82,11 @@ gitGraph
 | #6 | `ci/github-actions` | CI/CD 與不需要金鑰的部署 |
 | #7 | `fix/terraform-gcloud-client-drift` | 第一個受分支保護把關的 PR |
 | #8 | `feat/more-models` | 受測模型從 3 個增加到 5 個 |
+| #9 | `docs/submission` | 繳交文件：架構、ADR、CI/CD、Git 流程、AI 輔助開發 |
+| #10 | `docs/diagram-images` | 圖表匯出成 PNG，Mermaid 原始碼保留在旁 |
+| #11 | `chore/untrack-claude-config` | 移除不屬於專案的本機設定檔 |
+| #12 | `docs/ai-writeup-voice` | 改寫 AI 輔助開發心得 |
 
-每個 PR 的說明都包含：變更內容、設計理由、審查重點與測試計畫。
+完整清單見 [GitHub 上已合併的 PR](https://github.com/utonez/llm_bench/pulls?q=is%3Apr+is%3Amerged)。
+
+每個 PR 都附上變更內容與測試計畫；功能類的 PR 另外說明設計理由與審查重點。
